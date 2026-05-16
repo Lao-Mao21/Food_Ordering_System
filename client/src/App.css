@@ -1,0 +1,107 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Background color */
+  --color-bg-dark: oklch(var(--bg-dark));
+  --color-bg-main: oklch(var(--bg-main));
+  --color-bg-light: oklch(var(--bg-light));
+  --background-image-gradient: var(--gradient);
+  --background-image-gradient-hover: var(--gradient-hover);
+
+  /* Text */
+  --color-text: oklch(var(--text));
+  --color-text-muted: oklch(var(--text-muted));
+  
+  /* UI */
+  --color-highlight: oklch(var(--highlight));
+  --color-border: oklch(var(--border));
+  --color-border-muted: oklch(var(--border-muted));
+
+  /* Brand */
+  --color-primary: oklch(var(--primary));
+  --color-secondary: oklch(var(--secondary));
+
+  /* STATUS */
+  --color-danger: oklch(var(--danger));
+  --color-warning: oklch(var(--warning));
+  --color-success: oklch(var(--success));
+  --color-info: oklch(var(--info));
+
+  --shadow: var(--shadow);
+}
+
+:root {
+  /* Background color */
+  --bg-dark: 0.9205 0.0264 264.44;
+  --bg-main: 0.9582 0.02 257.47;
+  --bg-light: 0.9933 0.0095 197;
+
+  --gradient: linear-gradient(0deg, var(--bg-main) 97%, var(--bg-light));
+  --gradient-hover: linear-gradient(0deg, var(--bg-main), var(--bg-light));
+
+  --text: 0.1486 0.0487 265.13;
+  --text-muted: 0.3989 0.0505 264.99;
+
+  --highlight: 0.9882 0.0168 196.89;
+
+  --border: 0.5992 0.0507 264.67;
+  --border-muted: 0.699 0.0515 265.85;
+
+  --primary: 0.4 0.0998 263.74;
+  --secondary: 0.4037 0.084 78.41;
+
+  --danger: 0.4995 0.0514 27.43;
+  --warning: 0.5024 0.0504 100.85;
+  --success: 0.5015 0.0513 160.77;
+  --info: 0.5019 0.0491 257.17;
+
+  --shadow: 0px 2px 2px oklch(0 0 0 / 0.2), 0px 4px 4px oklch(0 0 0 / 0.1);
+}
+
+.dark {
+  --bg-dark: 0.102 0.0251 272.1;
+  --bg-main: 0.1503 0.0256 263.06;
+  --bg-light: 0.2003 0.0259 263.72;
+  --gradient: linear-gradient(0deg, var(--bg-main) 97%, var(--bg-light));
+  --gradient-hover: linear-gradient(0deg, var(--bg-main), var(--bg-light));
+
+  --text: 0.9544 0.025 236.82;
+  --text-muted: 0.7613 0.0498 263.07;
+
+  --highlight: 0.4995 0.0497 264.59;
+
+  --border: 0.3989 0.0505 2;
+  --border-muted: 0.2987 0.0508 263.37;
+
+  --primary: 0.761 0.0991 263.71;
+  --secondary: 0.7613 0.1001 83.5;
+
+  --danger: 0.6996 0.0509 29.54;
+  --warning: 0.7014 0.0504 99.65;
+  --success: 0.702 0.0499 159.22;
+  --info: 0.7011 0.051 259.08;
+}
+
+@layer base {
+  * {
+    font-family: 'Poppins', sans-serif;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
+
+  body, html {
+    height: 100vh;
+    width: 100vw;
+    background: oklch(var(--bg-dark));
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  #root {
+    height: 100vh;
+    width: 100vw;
+    background: oklch(var(--bg-dark));
+  }
+}
