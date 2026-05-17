@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('category')->index();
             $table->text('description')->nullable();
             $table->decimal('price', 10, 2);
-            $table->unsignedInteger('stock_quantity')->default(0);
             $table->boolean('is_available')->default(true);
             $table->string('image_url')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
@@ -66,3 +65,4 @@ return new class extends Migration
         Schema::dropIfExists('menu_items');
     }
 };
+

@@ -38,12 +38,12 @@ class DatabaseSeeder extends Seeder
         }
 
         $menuItems = [
-            ['name' => 'Chicken Teriyaki Bowl', 'category' => 'Rice Meals', 'description' => 'Grilled chicken, steamed rice, vegetables, and teriyaki sauce.', 'price' => 165, 'stock_quantity' => 30],
-            ['name' => 'Beef Tapa Plate', 'category' => 'Rice Meals', 'description' => 'House-cured beef tapa with garlic rice and egg.', 'price' => 185, 'stock_quantity' => 25],
-            ['name' => 'Classic Cheeseburger', 'category' => 'Burgers', 'description' => 'Beef patty, cheddar, lettuce, tomato, and house sauce.', 'price' => 155, 'stock_quantity' => 20],
-            ['name' => 'Crispy Fries', 'category' => 'Sides', 'description' => 'Golden potato fries with seasoning.', 'price' => 85, 'stock_quantity' => 40],
-            ['name' => 'Iced Tea', 'category' => 'Drinks', 'description' => 'Fresh brewed house iced tea.', 'price' => 55, 'stock_quantity' => 60],
-            ['name' => 'Chocolate Brownie', 'category' => 'Desserts', 'description' => 'Dense chocolate brownie square.', 'price' => 75, 'stock_quantity' => 18],
+            ['name' => 'Chicken Teriyaki Bowl', 'category' => 'Rice Meals', 'description' => 'Grilled chicken, steamed rice, vegetables, and teriyaki sauce.', 'price' => 165],
+            ['name' => 'Beef Tapa Plate', 'category' => 'Rice Meals', 'description' => 'House-cured beef tapa with garlic rice and egg.', 'price' => 185],
+            ['name' => 'Classic Cheeseburger', 'category' => 'Burgers', 'description' => 'Beef patty, cheddar, lettuce, tomato, and house sauce.', 'price' => 155],
+            ['name' => 'Crispy Fries', 'category' => 'Sides', 'description' => 'Golden potato fries with seasoning.', 'price' => 85],
+            ['name' => 'Iced Tea', 'category' => 'Drinks', 'description' => 'Fresh brewed house iced tea.', 'price' => 55],
+            ['name' => 'Chocolate Brownie', 'category' => 'Desserts', 'description' => 'Dense chocolate brownie square.', 'price' => 75],
         ];
 
         foreach ($menuItems as $menuItem) {
@@ -112,5 +112,64 @@ class DatabaseSeeder extends Seeder
             $order->items()->delete();
             $order->items()->createMany($orderLines);
         }
+        $activeOrders = [
+            ['number' => 'FO-ACTIVE-0001', 'customer' => 'Paolo Rivera', 'status' => 'pending', 'payment' => 'pending', 'items' => [['Classic Cheeseburger', 1], ['Iced Tea', 1]]],
+            ['number' => 'FO-ACTIVE-0002', 'customer' => 'Mika Fernandez', 'status' => 'preparing', 'payment' => 'paid', 'items' => [['Beef Tapa Plate', 1], ['Crispy Fries', 1]]],
+            ['number' => 'FO-ACTIVE-0003', 'customer' => 'Sofia Tan', 'status' => 'ready', 'payment' => 'pending', 'items' => [['Chicken Teriyaki Bowl', 2], ['Chocolate Brownie', 1]]],
+        ];
+
+        foreach ($activeOrders as $activeOrder) {
+            $orderedAt = now()->subMinutes(match ($activeOrder['status']) {
+                'pending' => 8,
+                'preparing' => 18,
+                'ready' => 28,
+                default => 5,
+            });
+            $orderLines = [];
+            $subtotal = 0;
+
+            foreach ($activeOrder['items'] as [$name, $quantity]) {
+                $item = $menu->get($name);
+                $lineTotal = (float) $item->price * $quantity;
+                $subtotal += $lineTotal;
+
+                $orderLines[] = [
+                    'menu_item_id' => $item->id,
+                    'menu_item_name' => $item->name,
+                    'unit_price' => $item->price,
+                    'quantity' => $quantity,
+                    'line_total' => $lineTotal,
+                ];
+            }
+
+            $order = Order::updateOrCreate(
+                ['order_number' => $activeOrder['number']],
+                [
+                    'customer_name' => $activeOrder['customer'],
+                    'customer_phone' => '+639' . fake()->numerify('#########'),
+                    'order_type' => 'takeout',
+                    'status' => $activeOrder['status'],
+                    'payment_status' => $activeOrder['payment'],
+                    'payment_method' => 'cash',
+                    'subtotal' => $subtotal,
+                    'tax' => 0,
+                    'discount' => 0,
+                    'total' => $subtotal,
+                    'notes' => 'Demo active order for dashboard.',
+                    'ordered_at' => $orderedAt,
+                    'completed_at' => null,
+                    'created_by' => $admin->id,
+                    'created_at' => $orderedAt,
+                    'updated_at' => $orderedAt,
+                ]
+            );
+
+            $order->items()->delete();
+            $order->items()->createMany($orderLines);
+        }
     }
 }
+
+
+
+

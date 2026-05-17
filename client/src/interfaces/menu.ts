@@ -4,7 +4,6 @@ export interface MenuItem {
   category: string;
   description?: string | null;
   price: string | number;
-  stock_quantity: number;
   is_available: boolean;
   image_url?: string | null;
   created_by?: number | null;
@@ -17,7 +16,6 @@ export interface MenuItemPayload {
   category: string;
   description?: string | null;
   price: number;
-  stock_quantity: number;
   is_available: boolean;
   image_url?: string | null;
 }

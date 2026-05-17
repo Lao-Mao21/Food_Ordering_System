@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { MainLayout } from "../components/layouts";
 import { Button, LoadingSpinner } from "../components/ui";
 import { InputField, Select, TextArea } from "../components/ui/forms";
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "../components/ui/table/Table";
+import { Table, TableBody, TableCell, TableHeader, TablePagination, TableRow } from "../components/ui/table/Table";
 import MenuItemService from "../services/MenuItemService";
 import OrderService from "../services/OrderService";
 import { notify } from "../util/notify";
@@ -16,9 +16,36 @@ type CartLine = {
 };
 
 type OrderAction = "advance" | "cancel";
+type OrderSortKey = "order_number" | "customer_name" | "status" | "payment_status" | "order_type" | "total" | "ordered_at";
 
 const formatCurrency = (value: string | number) =>
   Number(value || 0).toLocaleString("en-PH", { style: "currency", currency: "PHP" });
+
+type MenuImageProps = {
+  src?: string | null;
+  alt: string;
+};
+
+const MenuImage = ({ src, alt }: MenuImageProps) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!src || hasError) {
+    return (
+      <div className="flex h-24 w-full items-center justify-center rounded-lg border border-border-muted bg-primary/10 text-xs font-black text-primary">
+        IMG
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="h-24 w-full rounded-lg border border-border-muted object-cover"
+      onError={() => setHasError(true)}
+    />
+  );
+};
 
 const statusClasses: Record<OrderStatus, string> = {
   pending: "bg-warning/10 text-warning",
@@ -40,6 +67,17 @@ const Orders = () => {
   const [discount, setDiscount] = useState(0);
   const [notes, setNotes] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [paymentFilter, setPaymentFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [orderSearch, setOrderSearch] = useState("");
+  const [menuSearch, setMenuSearch] = useState("");
+  const [menuCategoryFilter, setMenuCategoryFilter] = useState("all");
+  const [sort, setSort] = useState<{ key: OrderSortKey; direction: "asc" | "desc" }>({ key: "ordered_at", direction: "desc" });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [menuCurrentPage, setMenuCurrentPage] = useState(1);
+  const [menuPageSize, setMenuPageSize] = useState(10);
+  const [isOrderListOpen, setIsOrderListOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [updatingOrder, setUpdatingOrder] = useState<{ id: number; action: OrderAction } | null>(null);
@@ -76,6 +114,68 @@ const Orders = () => {
     [menuItems]
   );
 
+  const menuCategories = useMemo(
+    () => Array.from(new Set(menuItems.map((item) => item.category))).sort(),
+    [menuItems]
+  );
+
+  const filteredMenuItems = useMemo(() => {
+    const query = menuSearch.trim().toLowerCase();
+
+    return menuItems.filter((item) => {
+      const matchesSearch = !query || [item.name, item.category, item.description ?? ""].some((value) =>
+        value.toLowerCase().includes(query)
+      );
+      const matchesCategory = menuCategoryFilter === "all" || item.category === menuCategoryFilter;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [menuCategoryFilter, menuItems, menuSearch]);
+
+  const menuTotalPages = Math.max(Math.ceil(filteredMenuItems.length / menuPageSize), 1);
+  const paginatedMenuItems = filteredMenuItems.slice((menuCurrentPage - 1) * menuPageSize, menuCurrentPage * menuPageSize);
+
+  useEffect(() => {
+    setMenuCurrentPage(1);
+  }, [menuCategoryFilter, menuPageSize, menuSearch]);
+
+  const filteredOrders = useMemo(() => {
+    const query = orderSearch.trim().toLowerCase();
+
+    return orders.filter((order) => {
+      const matchesSearch = !query || [order.order_number, order.customer_name, order.customer_phone ?? ""].some((value) =>
+        value.toLowerCase().includes(query)
+      );
+      const matchesPayment = paymentFilter === "all" || order.payment_status === paymentFilter;
+      const matchesType = typeFilter === "all" || order.order_type === typeFilter;
+
+      return matchesSearch && matchesPayment && matchesType;
+    });
+  }, [orderSearch, orders, paymentFilter, typeFilter]);
+
+  const sortedOrders = useMemo(() => {
+    return [...filteredOrders].sort((a, b) => {
+      const direction = sort.direction === "asc" ? 1 : -1;
+
+      if (sort.key === "total") {
+        return (Number(a.total) - Number(b.total)) * direction;
+      }
+
+      if (sort.key === "ordered_at") {
+        return (new Date(a.ordered_at ?? 0).getTime() - new Date(b.ordered_at ?? 0).getTime()) * direction;
+      }
+
+      return String(a[sort.key] ?? "").localeCompare(String(b[sort.key] ?? "")) * direction;
+    });
+  }, [filteredOrders, sort]);
+
+  const totalPages = Math.max(Math.ceil(sortedOrders.length / pageSize), 1);
+  const paginatedOrders = sortedOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [orderSearch, pageSize, paymentFilter, sort, statusFilter, typeFilter]);
+
   const cartTotal = useMemo(() => {
     const subtotal = cart.reduce((sum, line) => {
       const item = menuById.get(line.menu_item_id);
@@ -85,13 +185,20 @@ const Orders = () => {
     return Math.max(subtotal - Number(discount || 0), 0);
   }, [cart, discount, menuById]);
 
+  const handleSort = (key: OrderSortKey) => {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
   const addToCart = (menuItem: MenuItem) => {
     setCart((current) => {
       const existing = current.find((line) => line.menu_item_id === menuItem.id);
       if (existing) {
         return current.map((line) =>
           line.menu_item_id === menuItem.id
-            ? { ...line, quantity: Math.min(line.quantity + 1, menuItem.stock_quantity) }
+            ? { ...line, quantity: line.quantity + 1 }
             : line
         );
       }
@@ -101,8 +208,7 @@ const Orders = () => {
   };
 
   const updateQuantity = (menuItemId: number, quantity: number) => {
-    const item = menuById.get(menuItemId);
-    const nextQuantity = Math.max(1, Math.min(quantity, item?.stock_quantity ?? quantity));
+    const nextQuantity = Math.max(1, quantity);
 
     setCart((current) =>
       current.map((line) =>
@@ -201,12 +307,24 @@ const Orders = () => {
 
   const content = (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-text">Orders</h1>
-          <p className="mt-1 text-sm text-text-muted">{orders.length} orders in view</p>
+      <div className="flex flex-col gap-4 rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-text">Orders</h1>
+            <p className="mt-1 text-sm text-text-muted">{sortedOrders.length} of {orders.length} orders in view</p>
+          </div>
+          <Button variant="secondary" iconName="FaRepeat" onClick={fetchData} isLoading={isLoading}>
+            Refresh
+          </Button>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <InputField
+            label="Search"
+            placeholder="Order, customer, phone"
+            value={orderSearch}
+            onChange={(event) => setOrderSearch(event.target.value)}
+            fullWidth
+          />
           <Select
             label="Status"
             value={statusFilter}
@@ -219,17 +337,55 @@ const Orders = () => {
               { value: "completed", label: "Completed" },
               { value: "cancelled", label: "Cancelled" },
             ]}
+            fullWidth
           />
-          <Button variant="secondary" iconName="FaRepeat" onClick={fetchData} isLoading={isLoading}>
-            Refresh
-          </Button>
+          <Select
+            label="Payment"
+            value={paymentFilter}
+            onChange={(event) => setPaymentFilter(event.target.value)}
+            options={[
+              { value: "all", label: "All payments" },
+              { value: "pending", label: "Pending" },
+              { value: "paid", label: "Paid" },
+              { value: "refunded", label: "Refunded" },
+            ]}
+            fullWidth
+          />
+          <Select
+            label="Type"
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value)}
+            options={[
+              { value: "all", label: "All types" },
+              { value: "dine_in", label: "Dine in" },
+              { value: "takeout", label: "Takeout" },
+              { value: "delivery", label: "Delivery" },
+            ]}
+            fullWidth
+          />
+          <Select
+            label="Sort"
+            value={`${sort.key}:${sort.direction}`}
+            onChange={(event) => {
+              const [key, direction] = event.target.value.split(":") as [OrderSortKey, "asc" | "desc"];
+              setSort({ key, direction });
+            }}
+            options={[
+              { value: "ordered_at:desc", label: "Newest first" },
+              { value: "ordered_at:asc", label: "Oldest first" },
+              { value: "total:desc", label: "Total high-low" },
+              { value: "total:asc", label: "Total low-high" },
+              { value: "customer_name:asc", label: "Customer A-Z" },
+            ]}
+            fullWidth
+          />
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.3fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="space-y-6">
           <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
-            <h2 className="mb-4 text-xl font-black text-text">New Order</h2>
+            <h2 className="mb-4 text-xl font-black text-text">Create Order</h2>
             <div className="space-y-4">
               <InputField label="Customer" value={customerName} onChange={(event) => setCustomerName(event.target.value)} fullWidth required />
               <InputField label="Phone" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} fullWidth />
@@ -273,7 +429,6 @@ const Orders = () => {
               <TextArea label="Notes" value={notes} onChange={(event) => setNotes(event.target.value)} fullWidth />
             </div>
           </div>
-
           <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-black text-text">Cart</h2>
@@ -283,7 +438,7 @@ const Orders = () => {
             {cart.length === 0 ? (
               <div className="rounded-lg border border-border-muted p-6 text-center text-sm text-text-muted">No items selected.</div>
             ) : (
-              <div className="space-y-3">
+              <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
                 {cart.map((line) => {
                   const item = menuById.get(line.menu_item_id);
                   if (!item) return null;
@@ -301,7 +456,6 @@ const Orders = () => {
                         label="Quantity"
                         type="number"
                         min={1}
-                        max={item.stock_quantity}
                         value={String(line.quantity)}
                         onChange={(event) => updateQuantity(line.menu_item_id, Number(event.target.value))}
                         fullWidth
@@ -320,99 +474,159 @@ const Orders = () => {
 
         <div className="space-y-6">
           <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
-            <h2 className="mb-4 text-xl font-black text-text">Menu</h2>
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <h2 className="text-xl font-black text-text mb-5 ml-2">Menu</h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[28rem]">
+                <InputField
+                  label="Search menu"
+                  placeholder="Item or category"
+                  value={menuSearch}
+                  onChange={(event) => setMenuSearch(event.target.value)}
+                  fullWidth
+                />
+                <Select
+                  label="Category"
+                  value={menuCategoryFilter}
+                  onChange={(event) => setMenuCategoryFilter(event.target.value)}
+                  options={[
+                    { value: "all", label: "All categories" },
+                    ...menuCategories.map((category) => ({ value: category, label: category })),
+                  ]}
+                  fullWidth
+                />
+              </div>
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
-              {menuItems.map((item) => (
+              {paginatedMenuItems.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  disabled={item.stock_quantity === 0}
+                  disabled={!item.is_available}
                   onClick={() => addToCart(item)}
-                  className="rounded-lg border border-border-muted bg-bg-main p-4 text-left transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg border border-border-muted bg-bg-main p-3 text-left transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <MenuImage src={item.image_url} alt={item.name} />
+                  <div className="mt-3 flex items-start justify-between gap-3">
                     <div>
                       <p className="font-black text-text">{item.name}</p>
                       <p className="mt-1 text-xs uppercase tracking-wider text-text-muted">{item.category}</p>
                     </div>
                     <p className="font-black text-primary">{formatCurrency(item.price)}</p>
                   </div>
-                  <p className="mt-3 text-xs text-text-muted">Stock {item.stock_quantity}</p>
                 </button>
               ))}
             </div>
+            <TablePagination
+              currentPage={menuCurrentPage}
+              totalPages={menuTotalPages}
+              onPageChange={(page) => setMenuCurrentPage(Math.min(Math.max(page, 1), menuTotalPages))}
+              onPageSizeChange={setMenuPageSize}
+              totalResults={filteredMenuItems.length}
+              pageSize={menuPageSize}
+            />
           </div>
-
-          <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
-            {isLoading ? (
+        </div>
+        
+        <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm xl:col-span-2">
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-text">Order List</h2>
+              <p className="mt-1 text-sm text-text-muted">{sortedOrders.length} of {orders.length} orders match your filters</p>
+            </div>
+            <Button
+              variant="outline"
+              iconName={isOrderListOpen ? "FaChevronUp" : "FaChevronDown"}
+              onClick={() => setIsOrderListOpen((current) => !current)}
+            >
+              {isOrderListOpen ? "Collapse" : "Show Orders"}
+            </Button>
+          </div>
+            {!isOrderListOpen ? (
+              <div className="rounded-lg border border-border-muted bg-bg-main p-6 text-center text-sm text-text-muted">
+                Order list is collapsed so the page stays compact. Open it when you need to review or update orders.
+              </div>
+            ) : isLoading ? (
               <div className="py-20">
                 <LoadingSpinner size="lg" text="Loading orders..." />
               </div>
-            ) : orders.length === 0 ? (
+            ) : sortedOrders.length === 0 ? (
               <div className="py-20 text-center text-text-muted">No orders found.</div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableCell isHeader>Order</TableCell>
-                    <TableCell isHeader>Customer</TableCell>
-                    <TableCell isHeader>Status</TableCell>
-                    <TableCell isHeader align="right">Total</TableCell>
-                    <TableCell isHeader align="center">Actions</TableCell>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((order) => {
-                    const advanceTo = nextStatus(order.status);
+              <>
+                <div className="max-h-[34rem] overflow-y-auto pr-1">
+                  <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableCell isHeader sortKey="order_number" currentSort={sort} onSort={handleSort}>Order</TableCell>
+                      <TableCell isHeader sortKey="customer_name" currentSort={sort} onSort={handleSort}>Customer</TableCell>
+                      <TableCell isHeader sortKey="status" currentSort={sort} onSort={handleSort}>Status</TableCell>
+                      <TableCell isHeader sortKey="payment_status" currentSort={sort} onSort={handleSort}>Payment</TableCell>
+                      <TableCell isHeader align="right" sortKey="total" currentSort={sort} onSort={handleSort}>Total</TableCell>
+                      <TableCell isHeader align="center">Actions</TableCell>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedOrders.map((order) => {
+                      const advanceTo = nextStatus(order.status);
 
-                    return (
-                      <TableRow key={order.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-bold">{order.order_number}</p>
-                            <p className="text-xs text-text-muted">{order.order_type.replace("_", " ")}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{order.customer_name}</TableCell>
-                        <TableCell>
-                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusClasses[order.status]}`}>
-                            {order.status}
-                          </span>
-                        </TableCell>
-                        <TableCell align="right">{formatCurrency(order.total)}</TableCell>
-                        <TableCell align="center">
-                          <div className="flex justify-center gap-2">
-                            {advanceTo && (
-                              <Button
-                                size="sm"
-                                iconName="FaArrowRight"
-                                onClick={() => handleAdvanceStatus(order)}
-                                isLoading={updatingOrder?.id === order.id && updatingOrder.action === "advance"}
-                              >
-                                {advanceTo}
-                              </Button>
-                            )}
-                            {!["completed", "cancelled"].includes(order.status) && (
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                iconName="FaXmark"
-                                onClick={() => handleCancel(order)}
-                                isLoading={updatingOrder?.id === order.id && updatingOrder.action === "cancel"}
-                              >
-                                Cancel
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                      return (
+                        <TableRow key={order.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-bold">{order.order_number}</p>
+                              <p className="text-xs text-text-muted">{order.order_type.replace("_", " ")}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{order.customer_name}</TableCell>
+                          <TableCell>
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusClasses[order.status]}`}>
+                              {order.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>{order.payment_status}</TableCell>
+                          <TableCell align="right">{formatCurrency(order.total)}</TableCell>
+                          <TableCell align="center">
+                            <div className="flex justify-center gap-2">
+                              {advanceTo && (
+                                <Button
+                                  size="sm"
+                                  iconName="FaArrowRight"
+                                  onClick={() => handleAdvanceStatus(order)}
+                                  isLoading={updatingOrder?.id === order.id && updatingOrder.action === "advance"}
+                                >
+                                  {advanceTo}
+                                </Button>
+                              )}
+                              {!["completed", "cancelled"].includes(order.status) && (
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  iconName="FaXmark"
+                                  onClick={() => handleCancel(order)}
+                                  isLoading={updatingOrder?.id === order.id && updatingOrder.action === "cancel"}
+                                >
+                                  Cancel
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                  </Table>
+                </div>
+                <TablePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(page) => setCurrentPage(Math.min(Math.max(page, 1), totalPages))}
+                  onPageSizeChange={setPageSize}
+                  totalResults={sortedOrders.length}
+                  pageSize={pageSize}
+                />
+              </>
             )}
           </div>
-        </div>
       </div>
     </div>
   );
@@ -421,3 +635,7 @@ const Orders = () => {
 };
 
 export default Orders;
+
+
+
+

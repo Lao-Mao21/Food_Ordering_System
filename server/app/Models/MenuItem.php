@@ -13,7 +13,6 @@ class MenuItem extends Model
         'category',
         'description',
         'price',
-        'stock_quantity',
         'is_available',
         'image_url',
         'created_by',
@@ -21,7 +20,6 @@ class MenuItem extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
-        'stock_quantity' => 'integer',
         'is_available' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -37,3 +35,4 @@ class MenuItem extends Model
         return $this->hasMany(OrderItem::class);
     }
 }
+

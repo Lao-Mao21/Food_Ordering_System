@@ -65,7 +65,6 @@ class OrderController extends Controller
             $items = collect($validated['items']);
             $menuItems = MenuItem::query()
                 ->whereIn('id', $items->pluck('menu_item_id')->unique())
-                ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
 
@@ -79,10 +78,6 @@ class OrderController extends Controller
                     abort(422, 'One or more selected menu items are unavailable.');
                 }
 
-                if ($menuItem->stock_quantity < $item['quantity']) {
-                    abort(422, "{$menuItem->name} does not have enough stock.");
-                }
-
                 $lineTotal = (float) $menuItem->price * (int) $item['quantity'];
                 $subtotal += $lineTotal;
 
@@ -93,8 +88,6 @@ class OrderController extends Controller
                     'quantity' => $item['quantity'],
                     'line_total' => $lineTotal,
                 ];
-
-                $menuItem->decrement('stock_quantity', $item['quantity']);
             }
 
             $discount = (float) ($validated['discount'] ?? 0);
@@ -151,14 +144,7 @@ class OrderController extends Controller
             $validated['completed_at'] = now();
         }
 
-        if (($validated['status'] ?? null) === 'cancelled' && $order->status !== 'cancelled') {
-            DB::transaction(function () use ($order, $validated) {
-                $this->restoreStock($order);
-                $order->update($validated);
-            });
-        } else {
-            $order->update($validated);
-        }
+        $order->update($validated);
 
         return $this->success('Order updated successfully.', [
             'order' => $order->refresh()->load(['items.menuItem']),
@@ -189,16 +175,5 @@ class OrderController extends Controller
             : 1;
 
         return $prefix . str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
-    }
-
-    private function restoreStock(Order $order): void
-    {
-        $order->loadMissing('items');
-
-        foreach ($order->items as $item) {
-            if ($item->menu_item_id) {
-                MenuItem::whereKey($item->menu_item_id)->increment('stock_quantity', $item->quantity);
-            }
-        }
     }
 }
