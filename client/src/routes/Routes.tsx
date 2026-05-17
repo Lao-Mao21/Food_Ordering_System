@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { PATHS } from "./path";
@@ -10,8 +11,9 @@ const Register = React.lazy(() => import("../pages/auth/Register"));
 const ForgotPassword = React.lazy(() => import("../pages/auth/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("../pages/auth/ResetPassword"));
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
-const QueueBoard = React.lazy(() => import("../pages/QueueBoard"));
-const Services = React.lazy(() => import("../pages/Services"));
+const Orders = React.lazy(() => import("../pages/Orders"));
+const MenuManagement = React.lazy(() => import("../pages/MenuManagement"));
+const SalesAnalytics = React.lazy(() => import("../pages/SalesAnalytics"));
 
 export const Routes = createBrowserRouter([
   {
@@ -53,19 +55,23 @@ export const Routes = createBrowserRouter([
                 element: <Navigate to={PATHS.APP.DASHBOARD} replace />,
               },
               {
-                path: PATHS.APP.DASHBOARD,
-                element: <Dashboard />,
-              },
-              {
-                path: PATHS.APP.QUEUE,
-                element: <QueueBoard />,
-              },
-              {
                 element: <RoleRoute allowedRoles={['admin']} />,
                 children: [
                   {
-                    path: PATHS.APP.SERVICES,
-                    element: <Services />,
+                    path: PATHS.APP.DASHBOARD,
+                    element: <Dashboard />,
+                  },
+                  {
+                    path: PATHS.APP.ORDERS,
+                    element: <Orders />,
+                  },
+                  {
+                    path: PATHS.APP.MENU,
+                    element: <MenuManagement />,
+                  },
+                  {
+                    path: PATHS.APP.ANALYTICS,
+                    element: <SalesAnalytics />,
                   },
                 ],
               },

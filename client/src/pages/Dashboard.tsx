@@ -1,34 +1,61 @@
 import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "../components/layouts";
 import { Button, Icon, LoadingSpinner } from "../components/ui";
-import { Select } from "../components/ui/forms";
-import QueueService from "../services/QueueService";
-import ServiceService from "../services/ServiceService";
-import { notify } from "../util/notify";
-import type { Queue } from "../interfaces/queue";
-import type { Service } from "../interfaces/service";
+import AnalyticsService from "../services/AnalyticsService";
+import MenuItemService from "../services/MenuItemService";
+import OrderService from "../services/OrderService";
+import { unwrapData } from "../util/apiResponse";
+import type { SalesAnalytics } from "../interfaces/analytics";
+import type { MenuItem } from "../interfaces/menu";
+import type { Order, OrderStatus } from "../interfaces/order";
+
+const emptyAnalytics: SalesAnalytics = {
+  summary: {
+    total_revenue: 0,
+    total_orders: 0,
+    average_order_value: 0,
+    pending_orders: 0,
+    preparing_orders: 0,
+    ready_orders: 0,
+    completed_orders: 0,
+    cancelled_orders: 0,
+  },
+  revenue_by_day: [],
+  top_items: [],
+  range: { from: "", to: "" },
+};
+
+const formatCurrency = (value: string | number) =>
+  Number(value || 0).toLocaleString("en-PH", { style: "currency", currency: "PHP" });
+
+const statusClasses: Record<OrderStatus, string> = {
+  pending: "bg-warning/10 text-warning",
+  preparing: "bg-info/10 text-info",
+  ready: "bg-primary/10 text-primary",
+  completed: "bg-success/10 text-success",
+  cancelled: "bg-danger/10 text-danger",
+};
 
 const Dashboard = () => {
-  const [queues, setQueues] = useState<Queue[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+  const [analytics, setAnalytics] = useState<SalesAnalytics>(emptyAnalytics);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isActionLoading, setIsActionLoading] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [queueResponse, serviceResponse] = await Promise.all([
-        QueueService.getAll({}),
-        ServiceService.getAll(),
+      const [analyticsResponse, ordersResponse, menuResponse] = await Promise.all([
+        AnalyticsService.getSales(),
+        OrderService.getAll(),
+        MenuItemService.getAll({ include_unavailable: true }),
       ]);
 
-      setQueues(queueResponse.data || queueResponse);
-      setServices(serviceResponse.data || serviceResponse);
-      setSelectedServiceId((serviceResponse.data || serviceResponse)[0]?.id?.toString() || "");
+      setAnalytics(unwrapData<SalesAnalytics>(analyticsResponse, emptyAnalytics));
+      setOrders(unwrapData<{ orders: Order[] }>(ordersResponse, { orders: [] }).orders);
+      setMenuItems(unwrapData<{ menu_items: MenuItem[] }>(menuResponse, { menu_items: [] }).menu_items);
     } catch (error) {
       console.error(error);
-      notify.error("Unable to load queue dashboard data.");
     } finally {
       setIsLoading(false);
     }
@@ -38,177 +65,125 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  const summary = useMemo(() => ({
-    pending: queues.filter((queue) => queue.status === "pending").length,
-    serving: queues.filter((queue) => queue.status === "serving").length,
-    completed: queues.filter((queue) => queue.status === "completed").length,
-    skipped: queues.filter((queue) => queue.status === "skipped").length,
-  }), [queues]);
-
-  const nextQueueNumber = useMemo(() => {
-    if (!queues.length) return 1;
-    return Math.max(...queues.map((queue) => queue.queue_number)) + 1;
-  }, [queues]);
-
-  const currentServing = useMemo(
-    () => queues.find((queue) => queue.status === "serving"),
-    [queues]
+  const activeOrders = useMemo(
+    () => orders.filter((order) => !["completed", "cancelled"].includes(order.status)),
+    [orders]
   );
 
-  const handleTakeNumber = async () => {
-    if (!selectedServiceId) {
-      notify.error("Please select a service before taking a queue number.");
-      return;
-    }
+  const lowStock = useMemo(
+    () => menuItems.filter((item) => item.stock_quantity <= 5).slice(0, 5),
+    [menuItems]
+  );
 
-    setIsActionLoading(true);
-    try {
-      await QueueService.create({
-        queue_number: nextQueueNumber,
-        service_id: Number(selectedServiceId),
-        status: "pending",
-      });
-      notify.success(`Your queue number is ${nextQueueNumber}.`);
-      await fetchData();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-  const handleCallNext = async () => {
-    const nextPending = queues
-      .filter((queue) => queue.status === "pending")
-      .sort((a, b) => a.queue_number - b.queue_number)[0];
-
-    if (!nextPending) {
-      notify.info("No pending queue items.");
-      return;
-    }
-
-    setIsActionLoading(true);
-    try {
-      await QueueService.serve(nextPending.id);
-      notify.success(`Now serving ${nextPending.queue_number}.`);
-      await fetchData();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
+  const stats = [
+    { label: "Revenue", value: formatCurrency(analytics.summary.total_revenue), icon: "FaPesoSign" as const },
+    { label: "Active Orders", value: activeOrders.length, icon: "FaReceipt" as const },
+    { label: "Ready", value: analytics.summary.ready_orders, icon: "FaBell" as const },
+    { label: "Menu Items", value: menuItems.length, icon: "FaUtensils" as const },
+  ];
 
   const content = (
-    <div className="space-y-8">
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-border-muted bg-bg-light p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div>
-                <h1 className="text-3xl font-black text-text">Queue System Dashboard</h1>
-                <p className="mt-2 text-sm text-text-muted">
-                  Manage the queue flow, display current serving number, and take a new ticket.
-                </p>
-              </div>
-              <Button variant="secondary" iconName="FaRepeat" onClick={fetchData} isLoading={isLoading}>
-                Refresh Data
-              </Button>
-            </div>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-text">Food Ordering Dashboard</h1>
+          <p className="mt-1 text-sm text-text-muted">Admin operations overview</p>
+        </div>
+        <Button variant="secondary" iconName="FaRepeat" onClick={fetchData} isLoading={isLoading}>
+          Refresh
+        </Button>
+      </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {([
-                { label: "Pending", value: summary.pending, icon: "FaClock" as const },
-                { label: "Serving", value: summary.serving, icon: "FaHeadphones" as const },
-                { label: "Completed", value: summary.completed, icon: "FaCheck" as const },
-                { label: "Skipped", value: summary.skipped, icon: "FaForward" as const },
-              ] as const).map((stat) => (
-                <div key={stat.label} className="rounded-3xl border border-border-muted bg-white p-5 shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Icon iconName={stat.icon} size={20} />
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.25em] text-text-muted">{stat.label}</p>
-                      <p className="mt-2 text-3xl font-black text-text">{stat.value}</p>
-                    </div>
+      {isLoading ? (
+        <div className="rounded-lg border border-border-muted bg-bg-light py-24">
+          <LoadingSpinner size="lg" text="Loading dashboard..." />
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.label} className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon iconName={stat.icon} size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-text-muted">{stat.label}</p>
+                    <p className="mt-1 text-2xl font-black text-text">{stat.value}</p>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
 
-          <div className="rounded-3xl border border-border-muted bg-bg-light p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-xl font-black text-text">Current Serving</h2>
-                <p className="mt-2 text-sm text-text-muted">Live queue status for the active ticket.</p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Button variant="primary" iconName="FaTicket" onClick={handleTakeNumber} isLoading={isActionLoading}>
-                  Take Queue Number
-                </Button>
-                <Button variant="secondary" iconName="FaBullhorn" onClick={handleCallNext} isLoading={isActionLoading}>
-                  Call Next
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl border border-border-muted bg-white p-5">
-                <p className="text-sm uppercase tracking-[0.25em] text-text-muted">Your Next Number</p>
-                <p className="mt-4 text-5xl font-black text-primary">#{nextQueueNumber}</p>
+          <div className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
+            <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="text-xl font-black text-text">Active Orders</h2>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{activeOrders.length}</span>
               </div>
 
-              <div className="rounded-3xl border border-border-muted bg-white p-5 sm:col-span-2">
-                <p className="text-sm uppercase tracking-[0.25em] text-text-muted">Selected Service</p>
-                <div className="mt-4 max-w-xs">
-                  <Select
-                    label="Service"
-                    name="service"
-                    value={selectedServiceId}
-                    onChange={(e) => setSelectedServiceId(e.target.value)}
-                    options={services.map((service) => ({
-                      label: `${service.name} (Counter ${service.counter_number})`,
-                      value: service.id.toString(),
-                    }))}
-                  />
+              {activeOrders.length === 0 ? (
+                <div className="py-20 text-center text-text-muted">No active orders.</div>
+              ) : (
+                <div className="space-y-3">
+                  {activeOrders.slice(0, 8).map((order) => (
+                    <div key={order.id} className="flex flex-col gap-3 rounded-lg border border-border-muted p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-black text-text">{order.order_number}</p>
+                        <p className="text-sm text-text-muted">{order.customer_name} · {formatCurrency(order.total)}</p>
+                      </div>
+                      <span className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${statusClasses[order.status]}`}>
+                        {order.status}
+                      </span>
+                    </div>
+                  ))}
                 </div>
+              )}
+            </div>
+
+            <div className="space-y-6">
+              <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
+                <h2 className="mb-5 text-xl font-black text-text">Top Sellers</h2>
+                {analytics.top_items.length === 0 ? (
+                  <div className="py-10 text-center text-text-muted">No completed sales yet.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {analytics.top_items.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-text">{item.name}</p>
+                          <p className="text-xs text-text-muted">{item.quantity_sold} sold</p>
+                        </div>
+                        <p className="font-black text-primary">{formatCurrency(item.revenue)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
+                <h2 className="mb-5 text-xl font-black text-text">Low Stock</h2>
+                {lowStock.length === 0 ? (
+                  <div className="py-10 text-center text-text-muted">Inventory looks good.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {lowStock.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-text">{item.name}</p>
+                          <p className="text-xs text-text-muted">{item.category}</p>
+                        </div>
+                        <p className="font-black text-danger">{item.stock_quantity}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="rounded-3xl border border-border-muted bg-bg-light p-6 shadow-sm">
-          <h2 className="text-xl font-black text-text mb-4">Live Queue Display</h2>
-          <div className="rounded-3xl border border-border-muted bg-white p-6 text-center">
-            {isLoading ? (
-              <LoadingSpinner size="lg" text="Loading queue..." />
-            ) : currentServing ? (
-              <>
-                <p className="text-sm uppercase tracking-[0.25em] text-text-muted">Now Serving</p>
-                <p className="mt-4 text-6xl font-black text-primary">#{currentServing.queue_number}</p>
-                <p className="mt-3 text-sm text-text-muted">
-                  {currentServing.service_name || "Unknown service"}
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-text-muted">No ticket is being served right now.</p>
-            )}
-          </div>
-
-          <div className="mt-6 space-y-4">
-            <div className="rounded-3xl border border-border-muted bg-white p-5">
-              <p className="font-semibold text-text">Next in line</p>
-              <p className="mt-2 text-4xl font-black text-text">#{queues.filter((queue) => queue.status === "pending").sort((a, b) => a.queue_number - b.queue_number)[0]?.queue_number || "—"}</p>
-            </div>
-            <div className="rounded-3xl border border-border-muted bg-white p-5">
-              <p className="font-semibold text-text">Waiting customers</p>
-              <p className="mt-2 text-4xl font-black text-text">{summary.pending}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 

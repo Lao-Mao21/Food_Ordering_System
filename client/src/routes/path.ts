@@ -12,8 +12,9 @@ export const PATHS = {
   APP: {
     ROOT: `${APP_ROOT}`,
     DASHBOARD: `${APP_ROOT}/dashboard`,
-    QUEUE: `${APP_ROOT}/queue`,
-    SERVICES: `${APP_ROOT}/services`,
+    ORDERS: `${APP_ROOT}/orders`,
+    MENU: `${APP_ROOT}/menu`,
+    ANALYTICS: `${APP_ROOT}/analytics`,
     USERS: `${APP_ROOT}/users`,
     USER_DETAIL: `${APP_ROOT}/users/:slug`,
   },

@@ -56,7 +56,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             </span>
             <Link to={PATHS.APP.DASHBOARD} className="flex gap-3 items-center">
               <img src={Logo} alt="App Logo" />
-              <span className="text-text font-black text-lg tracking-tighter uppercase italic hidden sm:block">BUENAVIDES ReactLaravel</span>
+              <span className="text-text font-black text-lg tracking-tighter uppercase italic hidden sm:block">Food Ordering</span>
             </Link>
           </div>
 

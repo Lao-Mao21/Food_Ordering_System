@@ -62,7 +62,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const spinnerSizeMap: Record<ButtonSize, string> = {
-      sm: "w-1 h-1",
+      sm: "w-3 h-3",
       md: "w-4 h-4",
       lg: "w-8 h-8",
     };

@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\API\v1\AuthenticationController;
+use App\Http\Controllers\API\v1\MenuItemController;
+use App\Http\Controllers\API\v1\OrderController;
+use App\Http\Controllers\API\v1\SalesAnalyticsController;
 use App\Http\Controllers\API\v1\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,9 +18,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('user/auth/me', [AuthenticationController::class, 'me']);
     Route::post('auth/logout', [AuthenticationController::class, 'logout']);
 
+    // Food Ordering
+    Route::get('menu-items', [MenuItemController::class, 'index']);
+    Route::get('menu-items/{menuItem}', [MenuItemController::class, 'show']);
+    Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show', 'update']);
+    Route::post('orders/{order}/status', [OrderController::class, 'updateStatus']);
+
     // Admin Only
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::post('users/{id}/restore', [UserController::class, 'restore']);
+        Route::apiResource('menu-items', MenuItemController::class)
+            ->parameters(['menu-items' => 'menuItem'])
+            ->except(['index', 'show']);
+        Route::get('analytics/sales', [SalesAnalyticsController::class, 'index']);
     });
 });
