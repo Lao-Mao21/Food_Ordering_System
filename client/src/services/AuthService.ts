@@ -22,6 +22,36 @@ const AuthService = {
         ),
 
     /**
+     * Register a new user account.
+     */
+    register: (data: { name: string; email: string; password: string; password_confirmation: string }) =>
+        handleRequest(
+            AxiosInstance.post("auth/register", data),
+            "Registration failed.",
+            { returnFullResponse: true }
+        ),
+
+    /**
+     * Send a password reset email to the user.
+     */
+    sendResetLink: (data: { email: string }) =>
+        handleRequest(
+            AxiosInstance.post("auth/password/forgot", data),
+            "Unable to send reset link.",
+            { returnFullResponse: true }
+        ),
+
+    /**
+     * Reset the user's password using a token.
+     */
+    resetPassword: (data: { email: string; token: string; password: string; password_confirmation: string }) =>
+        handleRequest(
+            AxiosInstance.post("auth/password/reset", data),
+            "Unable to reset password.",
+            { returnFullResponse: true }
+        ),
+
+    /**
      * Get the currently authenticated user.
      */
     me: () =>

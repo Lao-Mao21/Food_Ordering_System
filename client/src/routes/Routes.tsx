@@ -6,6 +6,9 @@ import RootLayout from "./RootLayout";
 
 // Lazy Loading
 const Login = React.lazy(() => import("../pages/auth/Login"));
+const Register = React.lazy(() => import("../pages/auth/Register"));
+const ForgotPassword = React.lazy(() => import("../pages/auth/ForgotPassword"));
+const ResetPassword = React.lazy(() => import("../pages/auth/ResetPassword"));
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
 const QueueBoard = React.lazy(() => import("../pages/QueueBoard"));
 const Services = React.lazy(() => import("../pages/Services"));
@@ -24,6 +27,18 @@ export const Routes = createBrowserRouter([
           {
             path: PATHS.LOGIN,
             element: <Login />,
+          },
+          {
+            path: PATHS.REGISTER,
+            element: <Register />,
+          },
+          {
+            path: PATHS.FORGOT_PASSWORD,
+            element: <ForgotPassword />,
+          },
+          {
+            path: PATHS.RESET_PASSWORD,
+            element: <ResetPassword />,
           },
         ],
       },
