@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button, ToastProvider } from "../../components/ui/index";
+import { Button } from "../../components/ui/index";
 import { InputField } from "../../components/ui/forms/index";
 import { notify } from "../../util/notify";
 import AuthService from "../../services/AuthService";
@@ -101,9 +101,10 @@ const ForgotPassword: React.FC = () => {
                     </div>
                 </div>
             </div>
-            <ToastProvider />
+
         </>
     );
 };
 
 export default ForgotPassword;
+

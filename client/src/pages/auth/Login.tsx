@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button, ToastProvider } from "../../components/ui/index";
+import { Button } from "../../components/ui/index";
 import { InputField, PasswordInputField } from "../../components/ui/forms/index";
 import { useAuth } from "../../contexts/AuthContext";
 import { notify } from "../../util/notify";
@@ -48,7 +48,7 @@ const Login: React.FC = () => {
             const data = axiosErr.response?.data;
 
             if (status === 422 && data?.errors) {
-                // Validation errors — map to form fields
+                // Validation errors â€” map to form fields
                 setErrors({
                     email: data.errors.email?.[0],
                     password: data.errors.password?.[0],
@@ -67,7 +67,7 @@ const Login: React.FC = () => {
         <>
             <div className="min-h-screen w-full flex flex-col lg:flex-row bg-bg-dark">
 
-                {/* ─── LEFT COLUMN — BRANDING ─── */}
+                {/* â”€â”€â”€ LEFT COLUMN â€” BRANDING â”€â”€â”€ */}
                 <div className="relative w-full lg:w-1/2 flex flex-col items-center justify-center px-8 py-12 lg:py-0 overflow-hidden">
 
                     {/* Animated gradient background */}
@@ -100,7 +100,7 @@ const Login: React.FC = () => {
                                 BUENAVIDES
                             </h1>
                             <p className="text-sm lg:text-base font-semibold uppercase tracking-[0.3em] text-text-muted">
-                                React × Laravel
+                                React Ã— Laravel
                             </p>
                         </div>
 
@@ -120,7 +120,7 @@ const Login: React.FC = () => {
                     </div>
                 </div>
 
-                {/* ─── RIGHT COLUMN — LOGIN FORM ─── */}
+                {/* â”€â”€â”€ RIGHT COLUMN â€” LOGIN FORM â”€â”€â”€ */}
                 <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 lg:py-0">
                     <div className="w-full max-w-md">
 
@@ -232,16 +232,17 @@ const Login: React.FC = () => {
 
                         {/* Footer */}
                         <p className="text-center text-xs text-text-muted/60 mt-6 font-medium tracking-wide">
-                            © {new Date().getFullYear()} BUENAVIDES. All rights reserved.
+                            Â© {new Date().getFullYear()} BUENAVIDES. All rights reserved.
                         </p>
                     </div>
                 </div>
 
             </div>
 
-            <ToastProvider />
+
         </>
     );
 };
 
 export default Login;
+

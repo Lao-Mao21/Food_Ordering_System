@@ -9,7 +9,7 @@ import {
   TableRow,
   TablePagination,
 } from '../../components/ui/table/Table';
-import { Button, ToastProvider, LoadingSpinner, Icon } from '../../components/ui';
+import { Button, LoadingSpinner, Icon } from '../../components/ui';
 import { InputField } from '../../components/ui/forms';
 import CreateUserModal from './components/CreateUserModal';
 import EditUserModal from './components/EditUserModal';
@@ -335,7 +335,7 @@ const Users = () => {
                   </h2>
 
                   <p className="text-sm text-center text-text-muted">
-                    We couldn’t find any users matching your criteria. Try adjusting your filters or add a new user.
+                    We couldnâ€™t find any users matching your criteria. Try adjusting your filters or add a new user.
                   </p>
 
                   <Button variant='primary' iconName='FaPlus' onClick={() => setIsCreateModalOpen(true)}>
@@ -453,7 +453,7 @@ const Users = () => {
         onSuccess={handleRestoreSuccess}
       />
 
-      <ToastProvider />
+
     </div>
   );
 

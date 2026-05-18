@@ -40,19 +40,19 @@ AxiosInstance.interceptors.response.use(
     const status = error.response?.status;
     const url = error.config?.url || "";
 
-    const isAuthCheck = url.includes("/user/auth/me");
+    const isAuthCheck = url.includes("user/auth/me");
     const isLoginAttempt = url.includes("auth/login");
 
     if (status === 401 && !isAuthCheck && !isLoginAttempt) {
-      notify.error("Session expired. Please log in again.");
+      notify.error("Session expired. Please log in again.", { id: "session-expired" });
     }
 
     if (status === 403) {
-      notify.error("Access denied.");
+      notify.error("Access denied.", { id: "access-denied" });
     }
 
     if (typeof status === "number" && status >= 500) {
-      notify.error("Server error. Try again later.");
+      notify.error("Server error. Try again later.", { id: "server-error" });
     }
 
     return Promise.reject(error);

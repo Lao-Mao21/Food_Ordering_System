@@ -1,4 +1,4 @@
-import AxiosInstance from "../api/AxiosIntance";
+﻿import AxiosInstance from "../api/AxiosIntance";
 import { handleRequest } from "../api/apiHandler";
 
 const AuthService = {
@@ -24,7 +24,7 @@ const AuthService = {
     /**
      * Register a new user account.
      */
-    register: (data: { name: string; email: string; password: string; password_confirmation: string }) =>
+    register: (data: { name: string; email: string; password: string; password_confirmation: string; device_name?: string }) =>
         handleRequest(
             AxiosInstance.post("auth/register", data),
             "Registration failed.",
@@ -72,3 +72,5 @@ const AuthService = {
 };
 
 export default AuthService;
+
+

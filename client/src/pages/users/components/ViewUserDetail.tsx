@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../../components/layouts';
-import { Button, LoadingSpinner, Icon, ToastProvider } from '../../../components/ui';
+import { Button, LoadingSpinner, Icon } from '../../../components/ui';
 import UserService from '../../../services/UserSerivce';
 import type { User } from '../../../interfaces/user';
 import { notify } from '../../../util/notify';
@@ -19,7 +19,7 @@ const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) 
             {label}
         </span>
         <span className="text-sm text-text font-medium">
-            {value || <span className="text-text-muted italic">—</span>}
+            {value || <span className="text-text-muted italic">â€”</span>}
         </span>
     </div>
 );
@@ -141,7 +141,7 @@ const UserDetail = () => {
             {!isLoading && user && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    {/* Left — Avatar + Quick Info */}
+                    {/* Left â€” Avatar + Quick Info */}
                     <div className="lg:col-span-1">
                         <div className="bg-bg-light border border-border-muted rounded-2xl p-6 flex flex-col items-center text-center gap-4">
 
@@ -180,7 +180,7 @@ const UserDetail = () => {
                         </div>
                     </div>
 
-                    {/* Right — Detail Rows */}
+                    {/* Right â€” Detail Rows */}
                     <div className="lg:col-span-2">
                         <div className="bg-bg-light border border-border-muted rounded-2xl p-6 space-y-0">
 
@@ -228,7 +228,7 @@ const UserDetail = () => {
                 onSuccess={() => navigate(PATHS.APP.USERS)}
             />
 
-            <ToastProvider />
+
         </div>
     );
 
@@ -236,3 +236,4 @@ const UserDetail = () => {
 };
 
 export default UserDetail;
+

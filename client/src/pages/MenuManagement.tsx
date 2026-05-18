@@ -185,10 +185,10 @@ const MenuManagement = () => {
 
       if (selectedItem) {
         await MenuItemService.update(selectedItem.id, payload);
-        notify.success("Menu item updated.");
+        notify.success(`Menu item updated: ${payload.name}.`);
       } else {
         await MenuItemService.create(payload);
-        notify.success("Menu item added.");
+        notify.success(`Menu item added: ${payload.name}.`);
       }
 
       resetForm();
@@ -201,10 +201,11 @@ const MenuManagement = () => {
   };
 
   const handleDelete = async (id: number) => {
+    const itemName = items.find((item) => item.id === id)?.name ?? "Menu item";
     setDeletingId(id);
     try {
       await MenuItemService.delete(id);
-      notify.success("Menu item deleted.");
+      notify.success(`Menu item deleted: ${itemName}.`);
       await fetchMenu();
       if (selectedItem?.id === id) resetForm();
     } catch (error) {

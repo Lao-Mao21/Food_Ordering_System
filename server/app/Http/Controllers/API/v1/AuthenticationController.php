@@ -62,6 +62,7 @@ class AuthenticationController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'confirmed', PasswordRules::min(8)->mixedCase()->numbers()->symbols()],
+            'device_name' => ['sometimes', 'string', 'max:255'],
         ], [
             'password.min' => 'Password must be at least 8 characters long.',
             'password.confirmed' => 'Passwords do not match.',
@@ -77,8 +78,23 @@ class AuthenticationController extends Controller
             'role' => UserRole::GUEST,
         ]);
 
-        Auth::login($user);
-        $request->session()->regenerate();
+        if ($request->filled('device_name')) {
+            $token = $user->createToken($request->device_name)->plainTextToken;
+
+            return $this->success(
+                'Registration successful.',
+                [
+                    'user' => new UserResource($user),
+                    'token' => $token,
+                ],
+                201
+            );
+        }
+
+        if ($request->hasSession()) {
+            Auth::login($user);
+            $request->session()->regenerate();
+        }
 
         return $this->success(
             'Registration successful.',
@@ -112,6 +128,7 @@ class AuthenticationController extends Controller
             'token' => ['required', 'string'],
             'email' => ['required', 'string', 'email', 'exists:users,email'],
             'password' => ['required', 'string', 'confirmed', PasswordRules::min(8)->mixedCase()->numbers()->symbols()],
+            'device_name' => ['sometimes', 'string', 'max:255'],
         ], [
             'password.min' => 'Password must be at least 8 characters long.',
             'password.confirmed' => 'Passwords do not match.',
@@ -161,20 +178,21 @@ class AuthenticationController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        // ──────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // MOBILE: revoke the Bearer token used for this request
-        // ──────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if ($request->user()->currentAccessToken() &&
             method_exists($request->user()->currentAccessToken(), 'delete')) {
             $request->user()->currentAccessToken()->delete();
             return $this->success('Logged out successfully.', null, 200);
         }
-        // ──────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // WEB SPA: invalidate the session (unchanged)
-        // ──────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return $this->success('Logged out successfully.', null, 200);
     }
 }
+

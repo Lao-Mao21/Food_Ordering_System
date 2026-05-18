@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button, ToastProvider } from "../../components/ui/index";
+import { Button } from "../../components/ui/index";
 import { InputField, PasswordInputField } from "../../components/ui/forms/index";
 import AuthService from "../../services/AuthService";
 import { notify } from "../../util/notify";
@@ -48,14 +48,20 @@ const Register: React.FC = () => {
 
         setIsLoading(true);
         try {
+            await AuthService.csrf();
             await AuthService.register({
                 name,
                 email,
                 password,
                 password_confirmation: passwordConfirmation,
             });
-            notify.success("Registration successful. Redirecting to dashboard...");
-            navigate(PATHS.APP.DASHBOARD, { replace: true });
+            try {
+                await AuthService.logout();
+            } catch {
+                // Registration creates a session; ignore logout failures and send the user to sign in.
+            }
+            notify.success("Registration successful. Please sign in after admin access is granted.");
+            navigate(PATHS.LOGIN, { replace: true });
         } catch (err) {
             const axiosErr = err as AxiosError<{ message?: string; errors?: Record<string, string[]> }>;
             const status = axiosErr.response?.status;
@@ -90,24 +96,24 @@ const Register: React.FC = () => {
                     <div className="relative z-10 flex flex-col items-center text-center gap-6 max-w-md">
                         <div className="space-y-3">
                             <h1 className="text-4xl lg:text-5xl font-black uppercase tracking-tighter text-text">
-                                Queue Monitor
+                                Food Ordering
                             </h1>
                             <p className="text-sm lg:text-base font-semibold uppercase tracking-[0.3em] text-text-muted">
-                                Secure login and registration for your queue system.
+                                Secure login and registration for your food ordering system.
                             </p>
                         </div>
 
                         <p className="text-text-muted text-sm lg:text-base leading-relaxed max-w-xs">
-                            Create an account to manage queue tickets, view live serving status, and access admin counters.
+                            Create an account to manage menu items, orders, and sales analytics from one admin workspace.
                         </p>
 
                         <div className="grid gap-4 text-left">
                             <div className="rounded-3xl bg-bg-light p-4 shadow-inner border border-border-muted text-text">
                                 <p className="font-semibold">What you get</p>
                                 <ul className="mt-3 space-y-2 text-sm text-text-muted list-disc list-inside">
-                                    <li>Queue dashboard access</li>
-                                    <li>Live ticket tracking</li>
-                                    <li>Service counter management</li>
+                                    <li>Food ordering dashboard access</li>
+                                    <li>Live order tracking</li>
+                                    <li>Menu and analytics management</li>
                                 </ul>
                             </div>
                         </div>
@@ -122,7 +128,7 @@ const Register: React.FC = () => {
                                     Create your account
                                 </h2>
                                 <p className="text-sm text-text-muted font-medium">
-                                    Register now and start managing your queue from one place.
+                                    Register now and start managing your food ordering system from one place.
                                 </p>
                             </div>
 
@@ -222,15 +228,21 @@ const Register: React.FC = () => {
                         </div>
 
                         <p className="text-center text-xs text-text-muted/60 mt-6 font-medium tracking-wide">
-                            © {new Date().getFullYear()} Queue Monitor. All rights reserved.
+                            © {new Date().getFullYear()} Food Ordering. All rights reserved.
                         </p>
                     </div>
                 </div>
             </div>
 
-            <ToastProvider />
+
         </>
     );
 };
 
 export default Register;
+
+
+
+
+
+
