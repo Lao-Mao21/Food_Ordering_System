@@ -3,17 +3,11 @@ import { handleRequest } from "../api/apiHandler";
 
 const AuthService = {
 
-    /**
-     * Fetch the CSRF cookie from Sanctum (required before login).
-     */
     csrf: () =>
         AxiosInstance.get("/sanctum/csrf-cookie", {
             baseURL: import.meta.env.VITE_API_URL,
         }),
 
-    /**
-     * Login with email + password (session-based).
-     */
     login: (credentials: { email: string; password: string }) =>
         handleRequest(
             AxiosInstance.post("auth/login", credentials),
@@ -21,9 +15,6 @@ const AuthService = {
             { returnFullResponse: true }
         ),
 
-    /**
-     * Register a new user account.
-     */
     register: (data: { name: string; email: string; password: string; password_confirmation: string; device_name?: string }) =>
         handleRequest(
             AxiosInstance.post("auth/register", data),
@@ -31,9 +22,6 @@ const AuthService = {
             { returnFullResponse: true }
         ),
 
-    /**
-     * Send a password reset email to the user.
-     */
     sendResetLink: (data: { email: string }) =>
         handleRequest(
             AxiosInstance.post("auth/password/forgot", data),
@@ -41,9 +29,6 @@ const AuthService = {
             { returnFullResponse: true }
         ),
 
-    /**
-     * Reset the user's password using a token.
-     */
     resetPassword: (data: { email: string; token: string; password: string; password_confirmation: string }) =>
         handleRequest(
             AxiosInstance.post("auth/password/reset", data),
@@ -51,9 +36,6 @@ const AuthService = {
             { returnFullResponse: true }
         ),
 
-    /**
-     * Get the currently authenticated user.
-     */
     me: () =>
         handleRequest(
             AxiosInstance.get("user/auth/me"),
@@ -61,9 +43,6 @@ const AuthService = {
             { silentStatuses: [401, 419] }
         ),
 
-    /**
-     * Logout the current user.
-     */
     logout: () =>
         handleRequest(
             AxiosInstance.post("auth/logout"),

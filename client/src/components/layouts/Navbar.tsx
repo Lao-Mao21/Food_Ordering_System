@@ -6,7 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 import { notify } from "../../util/notify";
-import Logo from "../../assets/react.svg";
+import Logo from "../../assets/OrderGood.jpg";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -47,7 +47,6 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
       <div className="px-4 py-3 lg:px-6">
         <div className="flex items-center justify-between">
 
-          {/* Left — Logo & Mobile Toggle */}
           <div className="flex items-center justify-start">
             <span
               onClick={onMenuClick}
@@ -55,12 +54,11 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
               <Icon iconName="FaAlignJustify" />
             </span>
             <Link to={PATHS.APP.DASHBOARD} className="flex gap-3 items-center">
-              <img src={Logo} alt="App Logo" />
+              <img className="w-10 h-10 rounded-md" src={Logo} alt="App Logo" />
               <span className="text-text font-black text-lg tracking-tighter uppercase italic hidden sm:block">OrderGood</span>
             </Link>
           </div>
 
-          {/* Right — User Profile Dropdown */}
           {user && (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -69,7 +67,6 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 className="flex items-center gap-3 p-1.5 rounded-2xl cursor-pointer
                   hover:bg-bg-main transition-colors duration-200 focus:outline-none"
               >
-                {/* Avatar */}
                 <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-border-muted
                   flex items-center justify-center bg-primary/10 shrink-0">
                   {avatarUrl ? (
@@ -102,12 +99,10 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 />
               </button>
 
-              {/* Dropdown Menu */}
               {isDropdownOpen && (
                 <div className="absolute right-0 top-full mt-2 w-64 bg-bg-light border border-border-muted
                   rounded-2xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
 
-                  {/* User Info Header */}
                   <div className="px-4 py-3 border-b border-border-muted bg-bg-main/50">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-border-muted
@@ -135,10 +130,8 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                     </div>
                   </div>
 
-                  {/* Menu Items */}
                   <div className="py-1.5">
 
-                    {/* Theme Toggle */}
                     <button
                       id="theme-toggle-btn"
                       onClick={toggleTheme}
@@ -156,7 +149,6 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                         </span>
                       </div>
 
-                      {/* Segmented selector */}
                       <div className="flex items-center bg-bg-main rounded-lg p-0.5 gap-0.5">
                         {(["light", "dark", "system"] as const).map((mode) => (
                           <div
@@ -173,10 +165,8 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                       </div>
                     </button>
 
-                    {/* Divider */}
                     <div className="mx-3 my-1 border-t border-border-muted" />
 
-                    {/* Sign Out */}
                     <button
                       id="logout-btn"
                       onClick={handleLogout}

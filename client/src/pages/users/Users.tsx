@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../components/layouts';
 import {
@@ -21,9 +21,6 @@ import { notify } from '../../util/notify';
 import { useDebounce, useDateFormatter } from '../../hooks/index';
 import { PATHS } from '../../routes/path';
 
-/* =========================
-   TYPES
-========================= */
 type SortState = {
   key: keyof User;
   direction: "asc" | "desc";
@@ -34,6 +31,16 @@ type PaginationMeta = {
   last_page: number;
   per_page: number;
   total: number;
+};
+
+type UsersResponse = {
+  data?: {
+    users?: User[];
+    data?: User[];
+    meta?: PaginationMeta;
+  };
+  users?: User[];
+  meta?: PaginationMeta;
 };
 
 const Users = () => {
@@ -75,10 +82,7 @@ const Users = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  /* =========================
-     FETCH USERS
-  ========================= */
-  const fetchUsers = async (currentPage = 1, pageLimit = 10) => {
+  const fetchUsers = useCallback(async (currentPage = 1, pageLimit = 10) => {
     setIsLoading(true);
     try {
       const response = await UserService.getAll({
@@ -90,11 +94,11 @@ const Users = () => {
         filter: filter,
       });
 
-      // Extract users and pagination metadata
-      const userData = response.data || response;
-      setUsers(userData.users || userData.data || []);
+      const typedResponse = response as UsersResponse;
+      const userData = typedResponse.data || typedResponse;
+      const nextUsers = userData.users || (Array.isArray(userData.data) ? userData.data : []);
+      setUsers(nextUsers);
 
-      // Update pagination metadata
       if (userData.meta) {
         setPagination({
           current_page: userData.meta.current_page || currentPage,
@@ -109,22 +113,19 @@ const Users = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [debouncedSearchTerm, filter, sort.direction, sort.key]);
 
   useEffect(() => {
-    setPage(1); // Reset to first page when filter changes
+    setPage(1);
     fetchUsers(1, pageSize);
-  }, [filter]);
+  }, [fetchUsers, pageSize]);
 
   useEffect(() => {
     fetchUsers(page, pageSize);
-  }, [page, pageSize, sort, debouncedSearchTerm, filter]);
+  }, [fetchUsers, page, pageSize]);
 
-  /* =========================
-     SORT HANDLER
-  ========================= */
   const handleSort = (key: keyof User) => {
-    setPage(1); // Reset to first page when sorting
+    setPage(1);
     setSort((prev) => ({
       key,
       direction:
@@ -134,20 +135,10 @@ const Users = () => {
     }));
   };
 
-  /* =========================
-     PAGINATION
-  ========================= */
   const totalPages = pagination.last_page;
-
-  /* =========================
-    Date Formmater 
-  ========================= */
 
   const dateFormat = useDateFormatter();
 
-  /* =========================
-     MODAL STATE
-  ========================= */
   const [isCreateUserModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleCreateUserClose = () => {
@@ -181,9 +172,6 @@ const Users = () => {
     setSelectedUser(null);
   };
 
-  /* =========================
-     DELETE HANDLER
-  ========================= */
   const handleDeleteUser = (user: User) => {
     setUserToDelete(user);
     setIsDeleteModalOpen(true);
@@ -199,9 +187,6 @@ const Users = () => {
     setUserToDelete(null);
   };
 
-  /* =========================
-     RESTORE HANDLER
-  ========================= */
   const handleRestoreUser = (user: User) => {
     setUserToRestore(user);
     setIsRestoreModalOpen(true);
@@ -219,7 +204,6 @@ const Users = () => {
 
   const content = (
     <div className="space-y-6">
-      {/* Search and Controls Bar */}
       <div className="flex gap-4 items-end">
         <div className="flex-1">
           <InputField
@@ -240,7 +224,6 @@ const Users = () => {
         </Button>
       </div>
 
-      {/* Filter Tabs */}
       <div className="gap-2 bg-bg-light rounded-xl p-1 flex flex-wrap w-fit">
         {(Object.keys(filters) as Array<keyof typeof filters>).map((f) => {
           const { icon, label } = filters[f];
@@ -323,19 +306,15 @@ const Users = () => {
             <TableRow>
               <TableCell colSpan={7} className="py-12">
                 <div className="flex flex-col items-center justify-center text-center space-y-4 w-full">
-
-                  {/* Icon */}
                   <div className="w-16 h-16 flex items-center justify-center rounded-full">
                     <Icon iconName="FaUsersSlash" className="text-3xl" />
                   </div>
-
-                  {/* Title */}
                   <h2 className="text-lg font-semibold text-text">
                     No Users Found
                   </h2>
 
                   <p className="text-sm text-center text-text-muted">
-                    We couldnâ€™t find any users matching your criteria. Try adjusting your filters or add a new user.
+                    We couldn't find any users matching your criteria. Try adjusting your filters or add a new user.
                   </p>
 
                   <Button variant='primary' iconName='FaPlus' onClick={() => setIsCreateModalOpen(true)}>
@@ -462,3 +441,4 @@ const Users = () => {
 };
 
 export default Users;
+

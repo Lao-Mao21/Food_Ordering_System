@@ -5,6 +5,7 @@ import { InputField, PasswordInputField } from "../../components/ui/forms/index"
 import AuthService from "../../services/AuthService";
 import { notify } from "../../util/notify";
 import { PATHS } from "../../routes/path";
+import BrandLogo from "../../assets/OrderGood.jpg";
 import type { AxiosError } from "axios";
 
 const Register: React.FC = () => {
@@ -55,12 +56,8 @@ const Register: React.FC = () => {
                 password,
                 password_confirmation: passwordConfirmation,
             });
-            try {
-                await AuthService.logout();
-            } catch {
-                // Registration creates a session; ignore logout failures and send the user to sign in.
-            }
-            notify.success("Registration successful. Please sign in after admin access is granted.");
+            await AuthService.logout().catch(() => undefined);
+            notify.success("Registration successful. First account becomes admin; later accounts need admin access granted.");
             navigate(PATHS.LOGIN, { replace: true });
         } catch (err) {
             const axiosErr = err as AxiosError<{ message?: string; errors?: Record<string, string[]> }>;
@@ -85,64 +82,60 @@ const Register: React.FC = () => {
     };
 
     return (
-        <>
-            <div className="min-h-screen w-full flex flex-col lg:flex-row bg-bg-dark">
-                <div className="relative w-full lg:w-1/2 flex flex-col items-center justify-center px-8 py-12 lg:py-0 overflow-hidden">
-                    <div className="absolute inset-0 bg-linear-to-br from-primary/20 via-bg-dark to-secondary/10" />
-                    <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-primary/15 rounded-full blur-3xl animate-pulse" />
-                    <div className="absolute bottom-1/4 right-1/4 w-56 h-56 bg-secondary/15 rounded-full blur-3xl animate-pulse [animation-delay:1s]" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse [animation-delay:2s]" />
+        <div className="min-h-screen lg:h-screen w-full flex flex-col lg:flex-row bg-bg-dark lg:overflow-hidden">
+            <div className="relative w-full lg:w-5/12 flex flex-col items-center justify-center px-6 py-8 lg:py-0 overflow-hidden">
+                <div className="absolute inset-0 bg-linear-to-br from-primary/20 via-bg-dark to-secondary/10" />
+                <div className="absolute top-1/4 left-1/4 w-56 h-56 bg-primary/15 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-secondary/15 rounded-full blur-3xl animate-pulse [animation-delay:1s]" />
 
-                    <div className="relative z-10 flex flex-col items-center text-center gap-6 max-w-md">
-                        <div className="space-y-3">
-                            <h1 className="text-4xl lg:text-5xl font-black uppercase tracking-tighter text-text">
-                                OrderGood
-                            </h1>
-                            <p className="text-sm lg:text-base font-semibold uppercase tracking-[0.3em] text-text-muted">
-                                Secure login and registration for OrderGood.
+                <div className="relative z-10 flex flex-col items-center text-center gap-5 max-w-sm">
+                    <div className="relative bg-bg-light/10 backdrop-blur-xl border border-border-muted/40 rounded-3xl p-5 shadow-lg">
+                        <img
+                            src={BrandLogo}
+                            alt="OrderGood logo"
+                            className="w-20 h-20 lg:w-24 lg:h-24 rounded-lg object-cover drop-shadow-lg"
+                        />
+                    </div>
+
+                    <div className="space-y-3">
+                        <h1 className="text-4xl font-black uppercase tracking-tighter text-text">
+                            OrderGood
+                        </h1>
+                        <p className="text-xs lg:text-sm font-semibold uppercase tracking-[0.24em] text-text-muted">
+                            Restaurant order management
+                        </p>
+                    </div>
+
+                    <p className="text-text-muted text-sm leading-relaxed max-w-xs">
+                        Create the first admin account, or sign in if your team already has one.
+                    </p>
+                </div>
+            </div>
+
+            <div className="w-full lg:w-7/12 flex items-center justify-center px-6 py-8 lg:py-0">
+                <div className="w-full max-w-2xl">
+                    <div className="bg-bg-main border border-border-muted rounded-3xl p-6 lg:p-8 shadow-lg space-y-5 hover:shadow-xl transition-shadow duration-500">
+                        <div className="space-y-2">
+                            <h2 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-text">
+                                Create your account
+                            </h2>
+                            <p className="text-sm text-text-muted font-medium">
+                                First account becomes admin. Later accounts need admin access granted.
                             </p>
                         </div>
 
-                        <p className="text-text-muted text-sm lg:text-base leading-relaxed max-w-xs">
-                            Create an account to manage menu items, orders, and sales analytics from one admin workspace.
-                        </p>
-
-                        <div className="grid gap-4 text-left">
-                            <div className="rounded-3xl bg-bg-light p-4 shadow-inner border border-border-muted text-text">
-                                <p className="font-semibold">What you get</p>
-                                <ul className="mt-3 space-y-2 text-sm text-text-muted list-disc list-inside">
-                                    <li>OrderGood dashboard access</li>
-                                    <li>Live order tracking</li>
-                                    <li>Menu and analytics management</li>
-                                </ul>
-                            </div>
+                        <div className="flex items-center gap-4 py-1">
+                            <div className="flex-1 h-px bg-border-muted" />
+                            <span className="w-2 h-2 rounded-full bg-primary/60" />
+                            <div className="flex-1 h-px bg-border-muted" />
                         </div>
-                    </div>
-                </div>
 
-                <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 lg:py-0">
-                    <div className="w-full max-w-md">
-                        <div className="bg-bg-main border border-border-muted rounded-3xl p-8 lg:p-10 shadow-lg space-y-8 hover:shadow-xl transition-shadow duration-500">
-                            <div className="space-y-2">
-                                <h2 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-text">
-                                    Create your account
-                                </h2>
-                                <p className="text-sm text-text-muted font-medium">
-                                    Register now and start managing OrderGood from one place.
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <div className="flex-1 h-px bg-border-muted" />
-                                <span className="w-2 h-2 rounded-full bg-primary/60" />
-                                <div className="flex-1 h-px bg-border-muted" />
-                            </div>
-
-                            <form onSubmit={handleSubmit} className="space-y-5">
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <InputField
                                     label="Full Name"
                                     name="name"
-                                    placeholder="John Doe"
+                                    placeholder="Enter full name"
                                     value={name}
                                     onChange={(e) => {
                                         setName(e.target.value);
@@ -195,54 +188,45 @@ const Register: React.FC = () => {
                                     fullWidth
                                     required
                                 />
-
-                                <Button
-                                    type="submit"
-                                    variant="primary"
-                                    fullWidth
-                                    isLoading={isLoading}
-                                    loadingText="Creating Account..."
-                                    iconName="FaUserPlus"
-                                    size="lg"
-                                >
-                                    Create Account
-                                </Button>
-                            </form>
-
-                            <div className="flex items-center gap-4">
-                                <div className="flex-1 h-px bg-border-muted" />
-                                <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">
-                                    already registered?
-                                </span>
-                                <div className="flex-1 h-px bg-border-muted" />
                             </div>
 
-                            <p className="text-center text-sm text-text-muted">
-                                <Link
-                                    to={PATHS.LOGIN}
-                                    className="font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors duration-200"
-                                >
-                                    Sign In
-                                </Link>
-                            </p>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                fullWidth
+                                isLoading={isLoading}
+                                loadingText="Creating Account..."
+                                iconName="FaUserPlus"
+                                size="md"
+                            >
+                                Create Account
+                            </Button>
+                        </form>
+
+                        <div className="flex items-center gap-4">
+                            <div className="flex-1 h-px bg-border-muted" />
+                            <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">or</span>
+                            <div className="flex-1 h-px bg-border-muted" />
                         </div>
 
-                        <p className="text-center text-xs text-text-muted/60 mt-6 font-medium tracking-wide">
-                            © {new Date().getFullYear()} OrderGood. All rights reserved.
+                        <p className="text-center text-sm text-text-muted">
+                            Already registered?{" "}
+                            <Link
+                                to={PATHS.LOGIN}
+                                className="font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors duration-200"
+                            >
+                                Sign In
+                            </Link>
                         </p>
                     </div>
+
+                    <p className="text-center text-xs text-text-muted/60 mt-4 font-medium tracking-wide">
+                        © {new Date().getFullYear()} OrderGood. All rights reserved.
+                    </p>
                 </div>
             </div>
-
-
-        </>
+        </div>
     );
 };
 
 export default Register;
-
-
-
-
-
-

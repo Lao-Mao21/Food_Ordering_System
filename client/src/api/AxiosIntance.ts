@@ -16,7 +16,6 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match.split("=")[1]) : null;
 }
 
-// REQUEST
 AxiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   config.headers = config.headers ?? {};
 
@@ -33,7 +32,6 @@ AxiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// RESPONSE (ONLY GLOBAL ERRORS)
 AxiosInstance.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {

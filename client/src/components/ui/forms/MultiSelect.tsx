@@ -49,7 +49,6 @@ export const MultiSelect = ({
       ref={containerRef}
       className={`${fullWidth ? 'w-full' : 'w-72'} relative flex flex-col gap-2`}
     >
-      {/* LABEL */}
       {label && (
         <label
           htmlFor={id}
@@ -60,10 +59,8 @@ export const MultiSelect = ({
         </label>
       )}
 
-      {/* FIELD */}
       <div className="relative flex items-center group">
         
-        {/* LEFT ICON */}
         {iconName && (
           <div
             className={`
@@ -77,7 +74,6 @@ export const MultiSelect = ({
           </div>
         )}
 
-        {/* BUTTON (INPUT LOOK) */}
         <button
           id={id}
           type="button"
@@ -107,7 +103,6 @@ export const MultiSelect = ({
           )}
         </button>
 
-        {/* RIGHT ICON */}
         <div
           className={`
             absolute right-4 transition-colors duration-200 pointer-events-none
@@ -120,7 +115,6 @@ export const MultiSelect = ({
         </div>
       </div>
 
-      {/* DROPDOWN */}
       {isOpen && (
         <div className={`absolute z-50 mt-7 w-full bg-bg-light border border-border-muted rounded-xl shadow-lg 
           max-h-60 overflow-y-auto p-2 flex flex-col gap-1`}>
@@ -137,7 +131,6 @@ export const MultiSelect = ({
                   ${isSelected ? 'bg-primary/10' : 'hover:bg-primary/5'}
                 `}
               >
-                {/* Checkbox indicator */}
                 <div
                   className={`
                     w-4 h-4 rounded border flex items-center justify-center
@@ -158,7 +151,6 @@ export const MultiSelect = ({
         </div>
       )}
 
-      {/* ERROR */}
       {error && (
         <span className="text-sm font-medium text-danger ml-1">
           {error}

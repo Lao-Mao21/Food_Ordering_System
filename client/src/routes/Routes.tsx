@@ -5,7 +5,6 @@ import { PATHS } from "./path";
 import { ProtectedRoute, GuestRoute, RoleRoute } from "./guards";
 import RootLayout from "./RootLayout";
 
-// Lazy Loading
 const Login = React.lazy(() => import("../pages/auth/Login"));
 const Register = React.lazy(() => import("../pages/auth/Register"));
 const ForgotPassword = React.lazy(() => import("../pages/auth/ForgotPassword"));
@@ -15,6 +14,8 @@ const Orders = React.lazy(() => import("../pages/Orders"));
 const MenuManagement = React.lazy(() => import("../pages/MenuManagement"));
 const Categories = React.lazy(() => import("../pages/Categories"));
 const RecycleBin = React.lazy(() => import("../pages/RecycleBin"));
+const Users = React.lazy(() => import("../pages/users/Users"));
+const ViewUserDetail = React.lazy(() => import("../pages/users/components/ViewUserDetail"));
 const SalesAnalytics = React.lazy(() => import("../pages/SalesAnalytics"));
 
 export const Routes = createBrowserRouter([
@@ -78,6 +79,14 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.RECYCLE_BIN,
                     element: <RecycleBin />,
+                  },
+                  {
+                    path: PATHS.APP.USERS,
+                    element: <Users />,
+                  },
+                  {
+                    path: PATHS.APP.USER_DETAIL,
+                    element: <ViewUserDetail />,
                   },
                   {
                     path: PATHS.APP.ANALYTICS,

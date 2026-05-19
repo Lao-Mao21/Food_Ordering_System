@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { User } from "../interfaces/user";
 import AuthService from "../services/AuthService";
@@ -15,27 +16,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+type CurrentUserResponse = {
+    data?: {
+        user?: User;
+        data?: {
+            user?: User;
+        };
+    };
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    /**
-     * Fetch current user from /api/user/auth/me
-     * Silently fails for 401 (not logged in).
-     */
     const refreshUser = useCallback(async () => {
         try {
-            const res = await AuthService.me() as any;
+            const res = await AuthService.me() as CurrentUserResponse;
             setUser(res?.data?.user ?? null);
         } catch {
             setUser(null);
         }
     }, []);
 
-    /**
-     * We need to check if a valid session exists.
-     */
     useEffect(() => {
         const bootstrap = async () => {
             setIsLoading(true);
@@ -45,18 +47,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         bootstrap();
     }, [refreshUser]);
 
-    /**
-     * Login flow: CSRF -> authenticate -> refresh user state.
-     */
     const login = async (credentials: { email: string; password: string }) => {
         await AuthService.csrf();
-        const res = await AuthService.login(credentials) as any;
+        const res = await AuthService.login(credentials) as CurrentUserResponse;
         setUser(res?.data?.data?.user ?? null);
     };
 
-    /**
-     * Logout flow: call server -> clear local state.
-     */
     const logout = async () => {
         await AuthService.logout();
         setUser(null);

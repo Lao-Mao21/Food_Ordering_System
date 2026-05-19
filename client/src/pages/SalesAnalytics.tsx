@@ -5,7 +5,7 @@ import { InputField, Select } from "../components/ui/forms";
 import { TablePagination } from "../components/ui/table/Table";
 import AnalyticsService from "../services/AnalyticsService";
 import { unwrapData } from "../util/apiResponse";
-import type { RevenueTrendPoint, SalesAnalytics as SalesAnalyticsData, TopItem } from "../interfaces/analytics";
+import type { MonthlyRevenue, RevenueTrendPoint, SalesAnalytics as SalesAnalyticsData, TopItem } from "../interfaces/analytics";
 
 const emptyAnalytics: SalesAnalyticsData = {
   summary: {
@@ -31,6 +31,14 @@ top_items: [],
 
 type TopItemSort = "revenue:desc" | "revenue:asc" | "quantity_sold:desc" | "quantity_sold:asc" | "name:asc";
 type ItemShareScope = "range" | "year";
+type ChartTooltip = {
+  label: string;
+  revenue: string | number;
+  orders: number;
+  xPct: number;
+  yPct: number;
+  caption?: string;
+};
 
 const chartColors = ["#35477d", "#7b6f35", "#2f7d5c", "#a74d45", "#4f7396"];
 
@@ -52,6 +60,8 @@ const SalesAnalytics = () => {
   const [topItemSearch, setTopItemSearch] = useState("");
 const [topItemSort, setTopItemSort] = useState<TopItemSort>("revenue:desc");
   const [itemShareScope, setItemShareScope] = useState<ItemShareScope>("range");
+  const [trendTooltip, setTrendTooltip] = useState<ChartTooltip | null>(null);
+  const [monthlyTooltip, setMonthlyTooltip] = useState<ChartTooltip | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
@@ -108,10 +118,11 @@ setAnalytics({
   const trendChart = useMemo(() => {
     const width = 720;
     const height = 190;
-    const paddingX = 24;
+    const paddingX = 58;
+    const right = 24;
     const top = 18;
     const baseline = 158;
-    const innerWidth = width - paddingX * 2;
+    const innerWidth = width - paddingX - right;
     const innerHeight = baseline - top;
 
     const coords = trendPoints.map((point, index) => {
@@ -121,7 +132,7 @@ setAnalytics({
     });
 
     const linePoints = coords.map((coord) => `${coord.x},${coord.y}`).join(" ");
-    const areaPoints = coords.length > 0 ? `${paddingX},${baseline} ${linePoints} ${width - paddingX},${baseline}` : "";
+    const areaPoints = coords.length > 0 ? `${paddingX},${baseline} ${linePoints} ${width - right},${baseline}` : "";
     const labelCount = Math.min(trendPoints.length, trendPoints.length > 12 ? 6 : trendPoints.length);
     const labelIndexes = new Set(
       Array.from({ length: labelCount }, (_, index) =>
@@ -132,22 +143,35 @@ setAnalytics({
       label: trendPoints[index]?.label ?? "",
       x: coords[index]?.x ?? paddingX,
     }));
+    const yLabels = [1, 0.75, 0.5, 0.25, 0].map((ratio) => ({
+      label: formatCurrency(maxRevenue * ratio),
+      y: baseline - ratio * innerHeight,
+      ratio,
+    }));
 
-    return { width, height, top, baseline, linePoints, areaPoints, coords, labels };
+    return { width, height, paddingX, right, top, baseline, linePoints, areaPoints, coords, labels, yLabels };
   }, [trendPoints, maxRevenue]);
 
   const maxMonthlyRevenue = useMemo(
     () => Math.max(...analytics.monthly_revenue.map((month) => Number(month.revenue)), 1),
     [analytics.monthly_revenue]
   );
+  const peakMonthlyPoint = useMemo<MonthlyRevenue | null>(() => {
+    if (analytics.monthly_revenue.length === 0) return null;
+
+    return analytics.monthly_revenue.reduce((peak, month) =>
+      Number(month.revenue) > Number(peak.revenue) ? month : peak
+    );
+  }, [analytics.monthly_revenue]);
 
   const monthlyChart = useMemo(() => {
     const width = 720;
     const height = 190;
-    const paddingX = 28;
+    const paddingX = 58;
+    const right = 24;
     const top = 20;
     const baseline = 156;
-    const innerWidth = width - paddingX * 2;
+    const innerWidth = width - paddingX - right;
     const innerHeight = baseline - top;
     const values = analytics.monthly_revenue;
 
@@ -158,9 +182,14 @@ setAnalytics({
     });
 
     const linePoints = coords.map((coord) => `${coord.x},${coord.y}`).join(" ");
-    const areaPoints = coords.length > 0 ? `${paddingX},${baseline} ${linePoints} ${width - paddingX},${baseline}` : "";
+    const areaPoints = coords.length > 0 ? `${paddingX},${baseline} ${linePoints} ${width - right},${baseline}` : "";
+    const yLabels = [1, 0.75, 0.5, 0.25, 0].map((ratio) => ({
+      label: formatCurrency(maxMonthlyRevenue * ratio),
+      y: baseline - ratio * innerHeight,
+      ratio,
+    }));
 
-    return { width, height, top, baseline, linePoints, areaPoints, coords };
+    return { width, height, paddingX, right, top, baseline, linePoints, areaPoints, coords, yLabels };
   }, [analytics.monthly_revenue, maxMonthlyRevenue]);
 
   const itemShareItems = useMemo(
@@ -430,12 +459,13 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
                   </div>
                 ) : (
                   <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_12rem]">
-                    <div className="min-w-0 rounded-lg bg-bg-main p-3">
+                    <div className="relative min-w-0 rounded-lg bg-bg-main p-3">
                       <svg
                         viewBox={`0 0 ${trendChart.width} ${trendChart.height}`}
                         className="h-60 w-full overflow-visible"
                         role="img"
                         aria-label="Revenue trend for selected date range"
+                        onMouseLeave={() => setTrendTooltip(null)}
                       >
                         <defs>
                           <linearGradient id="revenueTrendFill" x1="0" x2="0" y1="0" y2="1">
@@ -443,21 +473,22 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
                             <stop offset="100%" stopColor="currentColor" stopOpacity="0.02" />
                           </linearGradient>
                         </defs>
-                        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-                          const y = trendChart.baseline - ratio * (trendChart.baseline - trendChart.top);
-                          return (
+                        {trendChart.yLabels.map(({ label, y, ratio }) => (
+                          <g key={ratio}>
                             <line
-                              key={ratio}
-                              x1="24"
-                              x2="696"
+                              x1={trendChart.paddingX}
+                              x2={trendChart.width - trendChart.right}
                               y1={y}
                               y2={y}
                               className="stroke-border-muted"
                               strokeDasharray={ratio === 0 ? undefined : "4 8"}
                               strokeWidth="1"
                             />
-                          );
-                        })}
+                            <text x="50" y={y + 4} textAnchor="end" className="fill-text-muted text-[10px] font-semibold">
+                              {label}
+                            </text>
+                          </g>
+                        ))}
                         <polygon points={trendChart.areaPoints} className="text-primary" fill="url(#revenueTrendFill)" />
                         <polyline
                           points={trendChart.linePoints}
@@ -468,19 +499,53 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
                           strokeLinejoin="round"
                           className="text-primary"
                         />
-                        {trendChart.coords.map(({ point, x, y }) => (
-                          Number(point.revenue) > 0 && (
-                            <circle key={`${point.period_start}-${point.period_end}`} cx={x} cy={y} r="4.5" className="fill-secondary stroke-bg-main" strokeWidth="2">
-                              <title>{`${point.label}: ${formatCurrency(point.revenue)} (${point.orders} orders)`}</title>
-                            </circle>
-                          )
-                        ))}
+                        {trendChart.coords.map(({ point, x, y }) => {
+                          const isPeak = point === peakTrendPoint && Number(point.revenue) > 0;
+
+                          return Number(point.revenue) > 0 && (
+                            <g key={`${point.period_start}-${point.period_end}`}>
+                              {isPeak && (
+                                <circle cx={x} cy={y} r="10" className="fill-secondary/25 stroke-secondary" strokeWidth="1.5" />
+                              )}
+                              <circle
+                                cx={x}
+                                cy={y}
+                                r={isPeak ? "6" : "4.5"}
+                                className="fill-secondary stroke-bg-main cursor-pointer"
+                                strokeWidth="2"
+                                onMouseEnter={() => setTrendTooltip({
+                                  label: point.label,
+                                  revenue: point.revenue,
+                                  orders: point.orders,
+                                  caption: `${point.period_start} to ${point.period_end}`,
+                                  xPct: (x / trendChart.width) * 100,
+                                  yPct: (y / trendChart.height) * 100,
+                                })}
+                              />
+                            </g>
+                          );
+                        })}
                         {trendChart.labels.map((label) => (
                           <text key={`${label.label}-${label.x}`} x={label.x} y="184" textAnchor="middle" className="fill-text-muted text-[10px] font-semibold">
                             {label.label}
                           </text>
                         ))}
                       </svg>
+                      {trendTooltip && (
+                        <div
+                          className="pointer-events-none absolute z-10 min-w-40 rounded-lg border border-border-muted bg-bg-light px-3 py-2 text-xs shadow-lg"
+                          style={{
+                            left: `${trendTooltip.xPct}%`,
+                            top: `${trendTooltip.yPct}%`,
+                            transform: "translate(-50%, calc(-100% - 12px))",
+                          }}
+                        >
+                          <p className="font-black text-text">{trendTooltip.label}</p>
+                          <p className="mt-1 text-primary font-black">{formatCurrency(trendTooltip.revenue)}</p>
+                          <p className="text-text-muted">{trendTooltip.orders} orders</p>
+                          <p className="text-text-muted">{trendTooltip.caption}</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
@@ -552,12 +617,13 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
                   {analytics.monthly_revenue.length === 0 ? (
                     <div className="py-14 text-center text-text-muted">No yearly revenue data.</div>
                   ) : (
-                    <div className="rounded-lg bg-bg-main p-3">
+                    <div className="relative rounded-lg bg-bg-main p-3">
                       <svg
                         viewBox={`0 0 ${monthlyChart.width} ${monthlyChart.height}`}
                         className="h-56 w-full overflow-visible"
                         role="img"
                         aria-label="Yearly revenue by month"
+                        onMouseLeave={() => setMonthlyTooltip(null)}
                       >
                         <defs>
                           <linearGradient id="monthlyRevenueFill" x1="0" x2="0" y1="0" y2="1">
@@ -565,21 +631,22 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
                             <stop offset="100%" stopColor="currentColor" stopOpacity="0.02" />
                           </linearGradient>
                         </defs>
-                        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-                          const y = monthlyChart.baseline - ratio * (monthlyChart.baseline - monthlyChart.top);
-                          return (
+                        {monthlyChart.yLabels.map(({ label, y, ratio }) => (
+                          <g key={ratio}>
                             <line
-                              key={ratio}
-                              x1="28"
-                              x2="692"
+                              x1={monthlyChart.paddingX}
+                              x2={monthlyChart.width - monthlyChart.right}
                               y1={y}
                               y2={y}
                               className="stroke-border-muted"
                               strokeDasharray={ratio === 0 ? undefined : "4 8"}
                               strokeWidth="1"
                             />
-                          );
-                        })}
+                            <text x="50" y={y + 4} textAnchor="end" className="fill-text-muted text-[10px] font-semibold">
+                              {label}
+                            </text>
+                          </g>
+                        ))}
                         <polygon points={monthlyChart.areaPoints} className="text-primary" fill="url(#monthlyRevenueFill)" />
                         <polyline
                           points={monthlyChart.linePoints}
@@ -590,17 +657,51 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
                           strokeLinejoin="round"
                           className="text-primary"
                         />
-                        {monthlyChart.coords.map(({ month, x, y }) => (
-                          <circle key={month.month} cx={x} cy={y} r="4.5" className="fill-secondary stroke-bg-main" strokeWidth="2">
-                            <title>{`${month.month}: ${formatCurrency(month.revenue)}`}</title>
-                          </circle>
-                        ))}
+                        {monthlyChart.coords.map(({ month, x, y }) => {
+                          const isPeak = month === peakMonthlyPoint && Number(month.revenue) > 0;
+
+                          return (
+                            <g key={month.month}>
+                              {isPeak && (
+                                <circle cx={x} cy={y} r="10" className="fill-secondary/25 stroke-secondary" strokeWidth="1.5" />
+                              )}
+                              <circle
+                                cx={x}
+                                cy={y}
+                                r={isPeak ? "6" : "4.5"}
+                                className="fill-secondary stroke-bg-main cursor-pointer"
+                                strokeWidth="2"
+                                onMouseEnter={() => setMonthlyTooltip({
+                                  label: month.month,
+                                  revenue: month.revenue,
+                                  orders: month.orders,
+                                  xPct: (x / monthlyChart.width) * 100,
+                                  yPct: (y / monthlyChart.height) * 100,
+                                })}
+                              />
+                            </g>
+                          );
+                        })}
                         {monthlyChart.coords.map(({ month, x }) => (
                           <text key={`${month.month}-label`} x={x} y="184" textAnchor="middle" className="fill-text-muted text-[10px] font-semibold">
                             {month.month}
                           </text>
                         ))}
                       </svg>
+                      {monthlyTooltip && (
+                        <div
+                          className="pointer-events-none absolute z-10 min-w-36 rounded-lg border border-border-muted bg-bg-light px-3 py-2 text-xs shadow-lg"
+                          style={{
+                            left: `${monthlyTooltip.xPct}%`,
+                            top: `${monthlyTooltip.yPct}%`,
+                            transform: "translate(-50%, calc(-100% - 12px))",
+                          }}
+                        >
+                          <p className="font-black text-text">{monthlyTooltip.label}</p>
+                          <p className="mt-1 text-primary font-black">{formatCurrency(monthlyTooltip.revenue)}</p>
+                          <p className="text-text-muted">{monthlyTooltip.orders} orders</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -696,6 +797,7 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
 };
 
 export default SalesAnalytics;
+
 
 
 

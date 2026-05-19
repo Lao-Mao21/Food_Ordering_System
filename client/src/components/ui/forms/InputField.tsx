@@ -28,7 +28,7 @@ export const InputField = React.forwardRef<HTMLInputElement, InputProps>(
     ref
   ) => {
     
-    const id = useId(); // React hook that generates a unique, stable ID string for your component.
+    const id = useId();
 
     const baseInputStyles = `
       w-full bg-bg-light text-text border border-border-muted placeholder:text-text-muted

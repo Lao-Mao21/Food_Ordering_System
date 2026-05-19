@@ -5,7 +5,7 @@ export type IconType = 'solid' | 'regular' | 'brands';
 
 interface FaIconProps extends React.HTMLAttributes<HTMLElement> {
     iconName: keyof typeof FaIcons;
-    type?: IconType; // optional grouping (for future use)
+    type?: IconType;
     size?: number | string;
     color?: string;
     inlineColor?: string;

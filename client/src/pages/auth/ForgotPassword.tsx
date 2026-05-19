@@ -35,7 +35,15 @@ const ForgotPassword: React.FC = () => {
             notify.success(response.data?.message || "Reset instructions were sent to your email.");
             navigate(PATHS.LOGIN, { replace: true });
         } catch (err) {
-            const axiosErr = err as any;
+            const axiosErr = err as {
+                response?: {
+                    status?: number;
+                    data?: {
+                        errors?: { email?: string[] };
+                        message?: string;
+                    };
+                };
+            };
             const status = axiosErr.response?.status;
             const data = axiosErr.response?.data;
 

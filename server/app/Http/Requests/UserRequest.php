@@ -11,19 +11,11 @@ use Illuminate\Validation\Rules\Password;
 
 class UserRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
 
@@ -69,10 +61,8 @@ class UserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            // Custom phone validation message
             'phone.phone' => 'The provided number is not a valid contact format for the Philippines.',
             'phone.max' => 'The contact number must not exceed 20 characters.',
-            // Custom image validation message
             'avatar.image' => 'The profile picture must be a valid image file (jpeg, png, bmp, gif, or svg).',
             'avatar.max' => 'The image size is too large. Please upload an avatar smaller than 25MB.',
         ];

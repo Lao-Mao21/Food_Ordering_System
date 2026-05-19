@@ -6,7 +6,7 @@ export const ToastProvider = () => {
       position="bottom-right"
       gutter={8}
       toastOptions={{
-        duration: 3000, // 3 seconds
+        duration: 3000,
         style: {
           background: 'oklch(var(--bg-light))',
           color: 'oklch(var(--text))',

@@ -42,7 +42,6 @@ export const PasswordInputField = React.forwardRef<HTMLInputElement, InputProps>
     return (
       <div className={`${fullWidth ? 'w-full' : 'w-72'} flex flex-col gap-2`}>
         
-        {/* LABEL */}
         {label && (
           <label
             htmlFor={id}
@@ -53,10 +52,8 @@ export const PasswordInputField = React.forwardRef<HTMLInputElement, InputProps>
           </label>
         )}
 
-        {/* FIELD */}
         <div className="relative flex items-center group">
           
-          {/* LEFT ICON */}
           {iconName && (
             <div
               className={`
@@ -70,7 +67,6 @@ export const PasswordInputField = React.forwardRef<HTMLInputElement, InputProps>
             </div>
           )}
 
-          {/* INPUT */}
           <input
             id={id}
             ref={ref}
@@ -92,7 +88,6 @@ export const PasswordInputField = React.forwardRef<HTMLInputElement, InputProps>
             {...props}
           />
 
-          {/* TOGGLE BUTTON */}
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
@@ -112,7 +107,6 @@ export const PasswordInputField = React.forwardRef<HTMLInputElement, InputProps>
           </button>
         </div>
 
-        {/* ERROR */}
         {error && (
           <span className="text-sm font-medium text-danger ml-1">
             {error}

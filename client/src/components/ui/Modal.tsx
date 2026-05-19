@@ -37,23 +37,22 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
     const modalRef = useRef<HTMLDivElement>(null);
 
-    // Prevent Closing When Submitting
     useOnClickOutside(modalRef, () => {
         if (!primaryAction?.isLoading) onClose();
     });
 
-    const handleEsc = (e: KeyboardEvent) => {
-        if (e.key === "Escape" && !primaryAction?.isLoading) {
-            onClose();
-        }
-    };
-
     useEffect(() => {
         if (!isOpen) return;
 
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && !primaryAction?.isLoading) {
+                onClose();
+            }
+        };
+
         window.addEventListener("keydown", handleEsc);
         return () => window.removeEventListener("keydown", handleEsc);
-    }, [isOpen, primaryAction?.isLoading]);
+    }, [isOpen, onClose, primaryAction?.isLoading]);
 
     if (!isOpen) return null;
 
@@ -67,16 +66,13 @@ export const Modal: React.FC<ModalProps> = ({
     return (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
 
-            {/* Overlay */}
             <div className="fixed inset-0 bg-bg-dark/10 backdrop-blur-xs" />
 
-            {/* Modal */}
             <div
                 ref={modalRef}
                 className={`relative w-full ${size !== "custom" ? sizeClasses[size] : ""} 
                 bg-bg-main border border-border-muted shadow rounded-[2.5rem] flex flex-col overflow-hidden`}
                 style={size === "custom" && customSize ? { maxWidth: customSize } : undefined}>
-                {/* Header */}
                 <div className="px-8 py-6 flex items-center justify-between border-b border-border bg-bg-main/30">
                     <h2 className="text-xl font-black uppercase italic tracking-tighter text-text">
                         {title}
@@ -94,12 +90,10 @@ export const Modal: React.FC<ModalProps> = ({
                     </Button>
                 </div>
 
-                {/* Content */}
                 <div className="p-8 max-h-[70vh] overflow-y-auto flex-1 text-text italic">
                     {children}
                 </div>
 
-                {/* Footer */}
                 {(footer || primaryAction || secondaryAction) && (
                     <div className="px-8 py-6 border-t border-border-muted bg-bg-main/30 flex justify-end items-center gap-3">
                         {footer ? (

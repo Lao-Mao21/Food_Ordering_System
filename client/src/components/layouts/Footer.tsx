@@ -4,7 +4,7 @@ const Footer: React.FC = () => {
   return (
     <footer className="p-4 bg-bg-light border-t border-border-muted mt-auto">
       <div className="flex flex-col md:flex-row items-center justify-center text-text-muted text-sm">
-        <span>© {new Date().getFullYear()} | Buenavides & Co.</span>
+        <span>© {new Date().getFullYear()} | OrderGood. All rights reserved.</span>
       </div>
     </footer>
   );

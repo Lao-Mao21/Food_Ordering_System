@@ -15,7 +15,6 @@ export const useDateFormatter = (locale: string = "en-PH") => {
     };
 
     return {
-        // May 1, 2026
         date: (value: Input) =>
             base(value, {
                 year: "numeric",
@@ -23,14 +22,12 @@ export const useDateFormatter = (locale: string = "en-PH") => {
                 day: "numeric"
             }),
 
-        // 03:45 PM
         time: (value: Input) =>
             base(value, {
                 hour: "2-digit",
                 minute: "2-digit"
             }),
 
-        // May 1, 2026, 03:45 PM
         dateTime: (value: Input) =>
             base(value, {
                 year: "numeric",
@@ -40,7 +37,6 @@ export const useDateFormatter = (locale: string = "en-PH") => {
                 minute: "2-digit"
             }),
 
-        // May 01, 2026 (for tables)
         compact: (value: Input) =>
             base(value, {
                 year: "numeric",
@@ -48,17 +44,7 @@ export const useDateFormatter = (locale: string = "en-PH") => {
                 day: "2-digit"
             }),
 
-        // Fully custom (only when needed)
         custom: (value: Input, options: Intl.DateTimeFormatOptions) =>
             base(value, options)
     };
 };
-
-/* EXAMPLE USAGE
-const dateFormat = useDateFormatter();
-
-<p>{dateFormat.date(user.created_at)}</p>
-<p>{dateFormat.time(user.created_at)}</p>
-<p>{dateFormat.dateTime(user.created_at)}</p>
-<p>{dateFormat.compact(user.created_at)}</p>
-*/

@@ -32,7 +32,6 @@ export const FileUploadField = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
-  // cleanup blob URLs
   useEffect(() => {
     return () => {
       previews.forEach((url) => {
@@ -41,9 +40,6 @@ export const FileUploadField = ({
     };
   }, [previews]);
 
-  // =========================
-  // PROCESS FILES
-  // =========================
   const processFiles = (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
@@ -53,7 +49,6 @@ export const FileUploadField = ({
       ? [...files, ...fileArray]
       : [fileArray[0]];
 
-    // MAX FILE LIMIT
     if (multiple && maxFiles && nextFiles.length > maxFiles) {
       setLocalError(`Maximum ${maxFiles} files allowed`);
       return;
@@ -70,9 +65,6 @@ export const FileUploadField = ({
     setPreviews(newPreviews);
   };
 
-  // =========================
-  // REMOVE FILE
-  // =========================
   const removeFile = (index: number) => {
     const updatedFiles = files.filter((_, i) => i !== index);
     setFiles(updatedFiles);
@@ -82,9 +74,6 @@ export const FileUploadField = ({
     setPreviews(updatedPreviews);
   };
 
-  // =========================
-  // DRAG REORDER
-  // =========================
   const handleDragStart = (index: number) => {
     setDragIndex(index);
   };
@@ -110,7 +99,7 @@ export const FileUploadField = ({
   return (
     <div className={`${fullWidth ? 'w-full' : 'w-72'} flex flex-col gap-2`}>
 
-      {/* LABEL */}
+      
       {label && (
         <label
           htmlFor={id}
@@ -120,7 +109,7 @@ export const FileUploadField = ({
         </label>
       )}
 
-      {/* DROP AREA */}
+      
       <div
         onClick={() => fileInputRef.current?.click()}
         onDragOver={(e) => {
@@ -159,7 +148,7 @@ export const FileUploadField = ({
           }}
         />
 
-        {/* EMPTY STATE */}
+        
         {files.length === 0 && (
           <div className="flex flex-col items-center gap-1 text-center">
             <Icon iconName="FaCloud" size={28} className="text-text-muted" />
@@ -172,7 +161,7 @@ export const FileUploadField = ({
           </div>
         )}
 
-        {/* PREVIEW GRID */}
+        
         {files.length > 0 && (
           <div
             className={`
@@ -206,7 +195,7 @@ export const FileUploadField = ({
                   </div>
                 )}
 
-                {/* REMOVE BUTTON */}
+                
                 <button
                   type="button"
                   onClick={(e) => {
@@ -222,7 +211,7 @@ export const FileUploadField = ({
         )}
       </div>
 
-      {/* ERROR */}
+      
       {(error || localError) && (
         <span className="text-sm font-medium text-danger ml-1">
           {error || localError}

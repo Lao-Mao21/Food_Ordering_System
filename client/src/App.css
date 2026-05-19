@@ -3,27 +3,22 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Background color */
   --color-bg-dark: oklch(var(--bg-dark));
   --color-bg-main: oklch(var(--bg-main));
   --color-bg-light: oklch(var(--bg-light));
   --background-image-gradient: var(--gradient);
   --background-image-gradient-hover: var(--gradient-hover);
 
-  /* Text */
   --color-text: oklch(var(--text));
   --color-text-muted: oklch(var(--text-muted));
   
-  /* UI */
   --color-highlight: oklch(var(--highlight));
   --color-border: oklch(var(--border));
   --color-border-muted: oklch(var(--border-muted));
 
-  /* Brand */
   --color-primary: oklch(var(--primary));
   --color-secondary: oklch(var(--secondary));
 
-  /* STATUS */
   --color-danger: oklch(var(--danger));
   --color-warning: oklch(var(--warning));
   --color-success: oklch(var(--success));
@@ -33,7 +28,6 @@
 }
 
 :root {
-  /* Background color */
   --bg-dark: 0.9205 0.0264 264.44;
   --bg-main: 0.9582 0.02 257.47;
   --bg-light: 0.9933 0.0095 197;

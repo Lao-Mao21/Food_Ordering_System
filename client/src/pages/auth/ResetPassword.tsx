@@ -53,7 +53,19 @@ const ResetPassword: React.FC = () => {
             notify.success(response.data?.message || "Your password has been reset successfully.");
             navigate(PATHS.LOGIN, { replace: true });
         } catch (err) {
-            const axiosErr = err as any;
+            const axiosErr = err as {
+                response?: {
+                    status?: number;
+                    data?: {
+                        errors?: {
+                            email?: string[];
+                            password?: string[];
+                            password_confirmation?: string[];
+                        };
+                        message?: string;
+                    };
+                };
+            };
             const status = axiosErr.response?.status;
             const data = axiosErr.response?.data;
 

@@ -2,9 +2,6 @@ import React, { type FC, type ReactNode, type MouseEventHandler } from "react";
 import { Icon } from "../../ui";
 import { Select } from "../forms/Select";
 
-/* =========================
-   TABLE
-========================= */
 export const Table: FC<{ children: ReactNode }> = ({ children }) => (
   <div className="rounded-2xl border border-border-muted bg-bg-light shadow-sm overflow-hidden">
     <div className="overflow-x-auto">
@@ -15,27 +12,18 @@ export const Table: FC<{ children: ReactNode }> = ({ children }) => (
   </div>
 );
 
-/* =========================
-   HEADER
-========================= */
 export const TableHeader: FC<{ children: ReactNode }> = ({ children }) => (
   <thead className="text-xs uppercase tracking-wider text-text-muted border-b border-border-muted">
     {children}
   </thead>
 );
 
-/* =========================
-   BODY
-========================= */
 export const TableBody: FC<{ children: ReactNode }> = ({ children }) => (
   <tbody className="divide-y divide-border-muted/30">
     {children}
   </tbody>
 );
 
-/* =========================
-   ROW
-========================= */
 export const TableRow = React.forwardRef<HTMLTableRowElement, { children: ReactNode; className?: string; onClick?: MouseEventHandler<HTMLTableRowElement> }>(({
   children, className = "", onClick }, ref) => (
   <tr
@@ -51,9 +39,6 @@ export const TableRow = React.forwardRef<HTMLTableRowElement, { children: ReactN
   </tr>
 ));
 
-/* =========================
-   CELL (WITH SORTABLE)
-========================= */
 interface TableCellProps<T = string> {
   children?: ReactNode;
   colSpan?: number;
@@ -133,9 +118,6 @@ export const TableCell = <T extends string = string>({
   );
 };
 
-/* =========================
-   PAGINATION
-========================= */
 interface TablePaginationProps {
   currentPage: number;
   totalPages: number;
@@ -175,8 +157,6 @@ export const TablePagination: FC<TablePaginationProps> = ({
 
   return (
     <div className="mt-4 flex flex-col lg:flex-row items-center justify-between gap-4 px-5 py-4 border border-border-muted bg-bg-light rounded-2xl">
-
-      {/* LEFT */}
       <div className="flex items-center gap-4">
         <span className="text-xs text-text-muted">Show</span>
         <div className="w-20">
@@ -194,11 +174,7 @@ export const TablePagination: FC<TablePaginationProps> = ({
           <span className="text-primary">{totalResults}</span>
         </span>
       </div>
-
-      {/* RIGHT */}
       <div className="flex items-center gap-1">
-
-        {/* PREV */}
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
@@ -206,8 +182,6 @@ export const TablePagination: FC<TablePaginationProps> = ({
         >
           <Icon iconName="FaChevronLeft" size={10} />
         </button>
-
-        {/* PAGES */}
         {pages.map((page) => (
           <button
             key={page}
@@ -222,8 +196,6 @@ export const TablePagination: FC<TablePaginationProps> = ({
             {page}
           </button>
         ))}
-
-        {/* NEXT */}
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}

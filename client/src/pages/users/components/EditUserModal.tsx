@@ -27,6 +27,16 @@ interface FormErrors {
     [key: string]: string;
 }
 
+type ValidationErrorResponse = {
+    response?: {
+        data?: {
+            errors?: Record<string, string[]>;
+            message?: string;
+        };
+    };
+    message?: string;
+};
+
 const EditUserModal = ({ isOpen, onClose, onSuccess, user }: Props) => {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
@@ -42,10 +52,7 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user }: Props) => {
         role: "guest",
     };
 
-    const [form, setForm] = useState<EditUserFormData>(initialFormState);
-
-    // Pre-populate form when a user is selected
-    useEffect(() => {
+    const [form, setForm] = useState<EditUserFormData>(initialFormState);    useEffect(() => {
         if (user) {
             setForm({
                 id: user.id ?? "",
@@ -65,12 +72,11 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user }: Props) => {
         setForm((prev) => ({
             ...prev,
             avatar: files[0] || null,
-        }));
-        // Clear avatar error when a file is selected
-        if (errors.avatar) {
+        }));        if (errors.avatar) {
             setErrors((prev) => {
-                const { avatar, ...rest } = prev;
-                return rest;
+                const next = { ...prev };
+                delete next.avatar;
+                return next;
             });
         }
     };
@@ -79,12 +85,11 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user }: Props) => {
         setForm((prev) => ({
             ...prev,
             [name]: value,
-        }));
-        // Clear field error when user starts typing
-        if (errors[name]) {
+        }));        if (errors[name]) {
             setErrors((prev) => {
-                const { [name]: _, ...rest } = prev;
-                return rest;
+                const next = { ...prev };
+                delete next[name];
+                return next;
             });
         }
     };
@@ -95,26 +100,18 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user }: Props) => {
         setIsLoading(true);
         setErrors({});
 
-        try {
-            // Build FormData for multipart/form-data submission
-            const formData = new FormData();
+        try {            const formData = new FormData();
             formData.append("name", form.name);
             formData.append("email", form.email);
             formData.append("phone", form.phone);
-            formData.append("role", form.role);
-
-            // Only include password fields if the user is changing the password
-            if (form.password) {
+            formData.append("role", form.role);            if (form.password) {
                 formData.append("password", form.password);
                 formData.append("password_confirmation", form.password_confirmation);
             }
 
             if (form.avatar) {
                 formData.append("avatar", form.avatar);
-            }
-
-            // Laravel requires _method override for PUT with multipart/form-data
-            formData.append("_method", "PUT");
+            }            formData.append("_method", "PUT");
 
             await UserService.update(user.id, formData);
             notify.success("User updated successfully!");
@@ -122,13 +119,11 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user }: Props) => {
             onClose();
             onSuccess();
 
-        } catch (error: any) {
-            // Extract validation errors from Laravel response
-            const validationErrors = error.response?.data?.errors;
+        } catch (error: unknown) {
+            const requestError = error as ValidationErrorResponse;
+            const validationErrors = requestError.response?.data?.errors;
 
-            if (validationErrors && typeof validationErrors === 'object') {
-                // Convert array errors to strings (take first error message for each field)
-                const formattedErrors: FormErrors = {};
+            if (validationErrors && typeof validationErrors === 'object') {                const formattedErrors: FormErrors = {};
                 for (const [field, messages] of Object.entries(validationErrors)) {
                     if (Array.isArray(messages) && messages.length > 0) {
                         formattedErrors[field] = messages[0] as string;
@@ -137,7 +132,7 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user }: Props) => {
                 notify.error("Some fields are incomplete or contain invalid information. Please review them.");
                 setErrors(formattedErrors);
             } else {
-                notify.error(error?.message || "Failed to update user");
+                notify.error(requestError.message || "Failed to update user");
             }
             console.error(error);
         } finally {
@@ -262,3 +257,4 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user }: Props) => {
 };
 
 export default EditUserModal;
+

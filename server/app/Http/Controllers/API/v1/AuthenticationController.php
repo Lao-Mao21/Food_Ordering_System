@@ -23,7 +23,7 @@ class AuthenticationController extends Controller
         $request->validate([
             'email'       => ['required', 'string', 'email'],
             'password'    => ['required', 'string'],
-            'device_name' => ['sometimes', 'string'], // Mobile only
+            'device_name' => ['sometimes', 'string'],
         ]);
         
         if (!Auth::attempt($request->only('email', 'password'))) {
@@ -32,7 +32,6 @@ class AuthenticationController extends Controller
         $user = Auth::user();
         
         if ($request->filled('device_name')) {
-            // Revoke any existing tokens for this device (prevent duplicates)
             $user->tokens()->where('name', $request->device_name)->delete();
             $token = $user->createToken($request->device_name)->plainTextToken;
             return $this->success(
@@ -71,11 +70,15 @@ class AuthenticationController extends Controller
             'password.symbols' => 'Password must include at least one symbol.',
         ]);
 
+        $role = User::query()->exists()
+            ? UserRole::GUEST
+            : UserRole::ADMIN;
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => UserRole::GUEST,
+            'role' => $role,
         ]);
 
         if ($request->filled('device_name')) {
@@ -178,17 +181,13 @@ class AuthenticationController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        // MOBILE: revoke the Bearer token used for this request
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Token-based clients log out by revoking the token used for this request.
         if ($request->user()->currentAccessToken() &&
             method_exists($request->user()->currentAccessToken(), 'delete')) {
             $request->user()->currentAccessToken()->delete();
             return $this->success('Logged out successfully.', null, 200);
         }
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        // WEB SPA: invalidate the session (unchanged)
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Browser clients log out by invalidating the session.
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

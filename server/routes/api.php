@@ -16,17 +16,14 @@ Route::post('auth/password/reset', [AuthenticationController::class, 'resetPassw
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Auth
     Route::get('user/auth/me', [AuthenticationController::class, 'me']);
     Route::post('auth/logout', [AuthenticationController::class, 'logout']);
 
-    // Food Ordering
     Route::get('menu-items', [MenuItemController::class, 'index']);
     Route::get('menu-items/{menuItem}', [MenuItemController::class, 'show']);
     Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show', 'update']);
     Route::post('orders/{order}/status', [OrderController::class, 'updateStatus']);
 
-    // Admin Only
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::post('users/{id}/restore', [UserController::class, 'restore']);

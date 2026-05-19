@@ -77,7 +77,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         {...props}
       >
-        {/* Tooltip */}
         {tooltip && !disabled && (
           <span className={`absolute ${tooltipPositions[tooltipPosition]} z-50 px-2 py-1 text-[12px] font-bold uppercase tracking-widest text-text 
             bg-bg-light border border-border-muted rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-300 shadow 
@@ -86,7 +85,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </span>
         )}
 
-        {/* Loading Overlay */}
         {isLoading && (
           <div className="inset-0 flex items-center justify-center bg-inherit z-10 rounded-2xl">
             <LoadingSpinner
@@ -98,7 +96,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </div>
         )}
 
-        {/* Content */}
         <div className={`${isLoading ? 'hidden' : 'flex'} items-center gap-2 transition-opacity duration-200`}>
 
           {iconPosition === 'left' && iconName && !isLoading && (

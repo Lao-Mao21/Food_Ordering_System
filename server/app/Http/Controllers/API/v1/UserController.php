@@ -14,15 +14,11 @@ class UserController extends Controller
 {
     use ApiResponse;
 
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         $query = User::query();
 
-        // Handle soft deletes - exclude deleted users by default
-        $filter = $request->input('filter', 'active'); // active, deleted, all
+        $filter = $request->input('filter', 'active');
 
         match ($filter) {
             'deleted' => $query->onlyTrashed(),
@@ -31,7 +27,6 @@ class UserController extends Controller
             default => $query->withoutTrashed(),
         };
 
-        // Search functionality
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -40,24 +35,20 @@ class UserController extends Controller
             });
         }
 
-        // Sorting
         $sortBy = $request->input('sort_by', 'name');
         $sortOrder = $request->input('sort_order', 'asc');
 
-        // Validate sort field to prevent SQL injection
         $allowedSortFields = ['name', 'role', 'created_at'];
         if (!in_array($sortBy, $allowedSortFields)) {
             $sortBy = 'name';
         }
 
-        // Validate sort order
         if (!in_array(strtolower($sortOrder), ['asc', 'desc'])) {
             $sortOrder = 'asc';
         }
 
         $query->orderBy($sortBy, $sortOrder);
 
-        // Pagination
         $perPage = (int) $request->input('limit', 10);
         $perPage = max(1, min($perPage, 100));
 
@@ -78,9 +69,6 @@ class UserController extends Controller
         );
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(UserRequest $request)
     {
         $validated = $request->validated();
@@ -101,9 +89,6 @@ class UserController extends Controller
         );
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $slug)
     {
         $user = User::withTrashed()->where('slug', $slug)->firstOrFail();
@@ -115,18 +100,13 @@ class UserController extends Controller
         );
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UserRequest $request, string $id)
     {
         $user = User::withTrashed()->findOrFail($id);
 
         $validated = $request->validated();
 
-        // Handle avatar upload — replace old file if a new one is provided
         if ($request->hasFile('avatar')) {
-            // Delete old avatar from storage if it exists
             if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
                 Storage::disk('public')->delete($user->avatar);
             }
@@ -136,17 +116,14 @@ class UserController extends Controller
             $path = $avatarFile->storeAs('avatars', $filename, 'public');
             $validated['avatar'] = $path;
         } else {
-            // Keep the existing avatar
             unset($validated['avatar']);
         }
 
-        // Only update password when a new one is explicitly provided
         if (empty($validated['password'])) {
             unset($validated['password']);
             unset($validated['password_confirmation']);
         }
 
-        // Remove confirmation field — not a DB column
         unset($validated['password_confirmation']);
 
         $user->update($validated);
@@ -158,9 +135,6 @@ class UserController extends Controller
         );
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $user = User::query()->findOrFail($id);
@@ -190,9 +164,6 @@ class UserController extends Controller
         );
     }
 
-    /**
-     * Restore a soft-deleted user.
-     */
     public function restore(string $id)
     {
         $user = User::withTrashed()->findOrFail($id);

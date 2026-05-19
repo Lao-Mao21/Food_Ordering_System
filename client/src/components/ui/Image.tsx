@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import * as FaIcons from 'react-icons/fa6';
 import { Icon, LoadingSpinner } from './index';
 
@@ -31,13 +31,13 @@ export const Image: React.FC<ImageProps> = ({
   ...props
 }) => {
 
-  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
-
-  useEffect(() => {
-    setStatus('loading');
-  }, [src]);
+  const [imageState, setImageState] = useState<{
+    src?: string;
+    status: 'loading' | 'loaded' | 'error';
+  }>({ src, status: 'loading' });
 
   const dimensionClass = customSize || sizeClasses[size];
+  const status = imageState.src === src ? imageState.status : 'loading';
 
   return (
     <div
@@ -48,14 +48,12 @@ export const Image: React.FC<ImageProps> = ({
         ${containerClassName}
       `}
     >
-      {/* Loading */}
       {status === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center bg-surface">
           <LoadingSpinner size="sm" />
         </div>
       )}
 
-      {/* Error */}
       {status === 'error' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted bg-surface">
           <Icon iconName={fallbackIcon} size={28} />
@@ -65,14 +63,13 @@ export const Image: React.FC<ImageProps> = ({
         </div>
       )}
 
-      {/* Image */}
       {src && (
         <img
           src={src}
           alt={alt}
           loading="lazy"
-          onLoad={() => setStatus('loaded')}
-          onError={() => setStatus('error')}
+          onLoad={() => setImageState({ src, status: 'loaded' })}
+          onError={() => setImageState({ src, status: 'error' })}
           className={`
             w-full h-full object-cover transition-all duration-500
             ${status === 'loaded' ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}

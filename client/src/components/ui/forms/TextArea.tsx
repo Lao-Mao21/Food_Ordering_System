@@ -34,16 +34,12 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
     const innerRef = useRef<HTMLTextAreaElement | null>(null);
     const [charCount, setCharCount] = useState(0);
 
-    // combine refs
     const textareaRef = (node: HTMLTextAreaElement) => {
       innerRef.current = node;
       if (typeof ref === 'function') ref(node);
       else if (ref) (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = node;
     };
 
-    // =========================
-    // AUTO EXPAND
-    // =========================
     const autoResize = () => {
       const el = innerRef.current;
       if (!el) return;
@@ -56,9 +52,6 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
       autoResize();
     }, [value]);
 
-    // =========================
-    // HANDLE CHANGE
-    // =========================
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setCharCount(e.target.value.length);
       autoResize();
@@ -88,7 +81,7 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
     return (
       <div className={`${fullWidth ? 'w-full' : 'w-72'} flex flex-col gap-2`}>
         
-        {/* LABEL */}
+        
         {label && (
           <label
             htmlFor={id}
@@ -99,7 +92,7 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
           </label>
         )}
 
-        {/* TEXTAREA */}
+        
         <div className="relative">
           <textarea
             id={id}
@@ -118,7 +111,7 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
             {...props}
           />
 
-          {/* COUNTER */}
+          
           {showCounter && (
             <div
               className={`
@@ -131,7 +124,7 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
           )}
         </div>
 
-        {/* ERROR */}
+        
         {error && (
           <span className="text-sm font-medium text-danger ml-1">
             {error}

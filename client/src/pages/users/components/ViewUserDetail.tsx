@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MainLayout } from '../../../components/layouts';
 import { Button, LoadingSpinner, Icon } from '../../../components/ui';
@@ -10,23 +10,19 @@ import { PATHS } from '../../../routes/path';
 import EditUserModal from './EditUserModal';
 import DeleteUserModal from './DeleteUserModal';
 
-/* =========================
-   DETAIL ROW
-========================= */
+
 const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="flex flex-col gap-1 py-3 border-b border-border-muted last:border-0">
         <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">
             {label}
         </span>
         <span className="text-sm text-text font-medium">
-            {value || <span className="text-text-muted italic">â€”</span>}
+            {value || <span className="text-text-muted italic">-</span>}
         </span>
     </div>
 );
 
-/* =========================
-   BADGE
-========================= */
+
 const RoleBadge = ({ role }: { role: string }) => {
     const isAdmin = role === 'admin';
     return (
@@ -42,9 +38,7 @@ const RoleBadge = ({ role }: { role: string }) => {
     );
 };
 
-/* =========================
-   USER DETAIL PAGE
-========================= */
+
 const UserDetail = () => {
     const { slug } = useParams<{ slug: string }>(); 
     const navigate = useNavigate();
@@ -57,30 +51,30 @@ const UserDetail = () => {
 
     const dateFormat = useDateFormatter();
 
-    /* =========================
-       FETCH USER
-    ========================= */
-    const fetchUser = async () => {
+    
+    const fetchUser = useCallback(async () => {
         if (!slug) return;
         setIsLoading(true);
         try {
             const response = await UserService.getOne(slug);
-            setUser(response.data?.user ?? response.user ?? null);
+            const userData = response as {
+                data?: { user?: User };
+                user?: User;
+            };
+            setUser(userData.data?.user ?? userData.user ?? null);
         } catch (error) {
             notify.error("Failed to load user details");
             console.error(error);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [slug]);
 
     useEffect(() => {
         fetchUser();
-    }, [slug]);
+    }, [fetchUser]);
 
-    /* =========================
-       CONTENT
-    ========================= */
+    
     const content = (
         <div className="space-y-6">
 
@@ -114,14 +108,14 @@ const UserDetail = () => {
                 )}
             </div>
 
-            {/* Loading */}
+            
             {isLoading && (
                 <div className="flex items-center justify-center py-24">
                     <LoadingSpinner size="md" text="Loading user details..." />
                 </div>
             )}
 
-            {/* User Not Found */}
+            
             {!isLoading && !user && (
                 <div className="flex flex-col items-center justify-center text-center space-y-4 py-24">
                     <div className="w-16 h-16 flex items-center justify-center rounded-full bg-danger/10">
@@ -137,15 +131,15 @@ const UserDetail = () => {
                 </div>
             )}
 
-            {/* User Detail Card */}
+            
             {!isLoading && user && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    {/* Left â€” Avatar + Quick Info */}
+                    
                     <div className="lg:col-span-1">
                         <div className="bg-bg-light border border-border-muted rounded-2xl p-6 flex flex-col items-center text-center gap-4">
 
-                            {/* Avatar */}
+                            
                             {user.avatar ? (
                                 <img
                                     src={`${import.meta.env.VITE_STORAGE_URL}/${user.avatar}`}
@@ -158,19 +152,19 @@ const UserDetail = () => {
                                 </div>
                             )}
 
-                            {/* Name & Role */}
+                            
                             <div className="space-y-1.5">
                                 <h2 className="text-lg font-bold text-text">{user.name}</h2>
                                 <RoleBadge role={user.role} />
                             </div>
 
-                            {/* Email quick */}
+                            
                             <div className="flex items-center gap-2 text-sm text-text-muted">
                                 <Icon iconName="FaEnvelope" size={13} />
                                 <span>{user.email}</span>
                             </div>
 
-                            {/* Phone quick */}
+                            
                             {user.phone && (
                                 <div className="flex items-center gap-2 text-sm text-text-muted">
                                     <Icon iconName="FaPhone" size={13} />
@@ -180,7 +174,7 @@ const UserDetail = () => {
                         </div>
                     </div>
 
-                    {/* Right â€” Detail Rows */}
+                    
                     <div className="lg:col-span-2">
                         <div className="bg-bg-light border border-border-muted rounded-2xl p-6 space-y-0">
 

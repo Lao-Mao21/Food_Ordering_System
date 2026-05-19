@@ -25,6 +25,16 @@ interface FormErrors {
     [key: string]: string;
 }
 
+type ValidationErrorResponse = {
+    response?: {
+        data?: {
+            errors?: Record<string, string[]>;
+            message?: string;
+        };
+    };
+    message?: string;
+};
+
 const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
@@ -45,12 +55,11 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
         setForm((prev) => ({
             ...prev,
             avatar: files[0] || null,
-        }));
-        // Clear avatar error when a file is selected
-        if (errors.avatar) {
+        }));        if (errors.avatar) {
             setErrors((prev) => {
-                const { avatar, ...rest } = prev;
-                return rest;
+                const next = { ...prev };
+                delete next.avatar;
+                return next;
             });
         }
     };
@@ -59,12 +68,11 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
         setForm((prev) => ({
             ...prev,
             [name]: value,
-        }));
-        // Clear field error when user starts typing
-        if (errors[name]) {
+        }));        if (errors[name]) {
             setErrors((prev) => {
-                const { [name]: _, ...rest } = prev;
-                return rest;
+                const next = { ...prev };
+                delete next[name];
+                return next;
             });
         }
     };
@@ -73,9 +81,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
         setIsLoading(true);
         setErrors({});
 
-        try {
-            // Create FormData for multipart/form-data submission
-            const formData = new FormData();
+        try {            const formData = new FormData();
             formData.append("name", form.name);
             formData.append("email", form.email);
             formData.append("phone", form.phone);
@@ -94,13 +100,11 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
             onClose();
             onSuccess();
 
-        } catch (error: any) {
-            // Extract validation errors from Laravel response
-            const validationErrors = error.response?.data?.errors;
+        } catch (error: unknown) {
+            const requestError = error as ValidationErrorResponse;
+            const validationErrors = requestError.response?.data?.errors;
             
-            if (validationErrors && typeof validationErrors === 'object') {
-                // Convert array errors to strings (take first error message for each field)
-                const formattedErrors: FormErrors = {};
+            if (validationErrors && typeof validationErrors === 'object') {                const formattedErrors: FormErrors = {};
                 for (const [field, messages] of Object.entries(validationErrors)) {
                     if (Array.isArray(messages) && messages.length > 0) {
                         formattedErrors[field] = messages[0] as string;
@@ -109,7 +113,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
                 notify.error("Some fields are incomplete or contain invalid information. Please review them.");
                 setErrors(formattedErrors);
             } else {
-                notify.error(error?.message || "Failed to create user");
+                notify.error(requestError.message || "Failed to create user");
             }
             console.error(error);
         } finally {
@@ -213,8 +217,20 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
                         Role (Default to Guest)
                     </label>
                     <div className="inline-flex gap-3">
-                        <Radio name="role" label="Guest" value={form.role}/>
-                        <Radio name="role" label="Admin" value={form.role}/>
+                        <Radio
+                            name="role"
+                            label="Guest"
+                            value="guest"
+                            checked={form.role === "guest"}
+                            onChange={() => handleChange("role", "guest")}
+                        />
+                        <Radio
+                            name="role"
+                            label="Admin"
+                            value="admin"
+                            checked={form.role === "admin"}
+                            onChange={() => handleChange("role", "admin")}
+                        />
                     </div>
                 </div>
 
@@ -224,3 +240,4 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
 };
 
 export default CreateUserModal;
+

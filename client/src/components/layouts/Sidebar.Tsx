@@ -6,15 +6,13 @@ import { PATHS } from "../../routes/path";
 import { useAuth } from "../../contexts/AuthContext";
 import type { Role } from "../../interfaces/user";
 
-// Define the shape of a single menu item
 interface MenuItem {
   name: string;
   icon: keyof typeof FaIcons;
   path: string;
-  roles?: Role[]; // If omitted, visible to all authenticated users
+  roles?: Role[];
 }
 
-// Define the shape of a menu group
 interface MenuGroup {
   group: string;
   items: MenuItem[];
@@ -63,6 +61,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           roles: ['admin'],
         },
         {
+          name: "Users",
+          icon: "FaUsers",
+          path: PATHS.APP.USERS,
+          roles: ['admin'],
+        },
+        {
           name: "Analytics",
           icon: "FaChartSimple",
           path: PATHS.APP.ANALYTICS,
@@ -72,7 +76,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
     },
   ];
 
-  // Filter menu items by current user's role
   const filteredGroups = menuGroups
     .map((group) => ({
       ...group,
@@ -106,7 +109,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
                           : "text-text hover:text-bg-dark hover:bg-primary"
                       }`}
                     >
-                      {/*  Vertical bar */}
                       <span
                         className={`absolute left-1 h-6 w-1 rounded-r bg-bg-light transition-all duration-300 
                         ${
@@ -115,8 +117,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
                             : "opacity-0 scale-y-0 group-hover:opacity-100 group-hover:scale-y-100"
                         }`}
                       />
-
-                      {/* Icon */}
                       <div className="ml-2">
                         <Icon
                           iconName={item.icon}
@@ -127,8 +127,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
                           }`}
                         />
                       </div>
-
-                      {/* Text */}
                       <span
                         className={`ml-3 text-sm ${
                           isActive
