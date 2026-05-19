@@ -1,6 +1,10 @@
 import type { AxiosResponse, AxiosError } from "axios";
 import { notify } from "../util/notify";
 
+type ErrorEnvelope = {
+    message?: string;
+};
+
 type HandleRequestOptions = {
     returnFullResponse?: boolean;
     silentStatuses?: number[];
@@ -23,9 +27,11 @@ export async function handleRequest<T>(
         const error = err as AxiosError;
 
         const status = error.response?.status;
+        const responseData = error.response?.data as ErrorEnvelope | undefined;
+        const message = responseData?.message || errorMessage;
 
         if (!status || !silentStatuses.includes(status)) {
-            notify.error(errorMessage);
+            notify.error(message);
         }
 
         throw error;

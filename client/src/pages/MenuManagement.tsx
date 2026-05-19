@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MainLayout } from "../components/layouts";
 import { Button, LoadingSpinner, Modal } from "../components/ui";
 import { InputField, Select, TextArea } from "../components/ui/forms";
@@ -7,10 +7,12 @@ import MenuItemService from "../services/MenuItemService";
 import { notify } from "../util/notify";
 import { unwrapData } from "../util/apiResponse";
 import type { MenuItem, MenuItemPayload } from "../interfaces/menu";
+import type { Category } from "../interfaces/category";
 
 const emptyForm: MenuItemPayload = {
   name: "",
   category: "",
+  category_id: null,
   description: "",
   price: 0,
   is_available: true,
@@ -49,8 +51,110 @@ const MenuImage = ({ src, alt, className = "h-10 w-10" }: MenuImageProps) => {
   );
 };
 
+type MenuImageFieldProps = {
+  value?: string | null;
+  previewAlt: string;
+  isUploading: boolean;
+  onChange: (value: string) => void;
+  onUpload: (file: File) => void;
+};
+
+const MenuImageField = ({ value, previewAlt, isUploading, onChange, onUpload }: MenuImageFieldProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const imageValue = value ?? "";
+
+  const handleFiles = (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      notify.error("Choose an image file.");
+      return;
+    }
+
+    onUpload(file);
+  };
+
+  return (
+    <div
+      className={`grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem] ${isDragging ? "rounded-xl ring-2 ring-primary/30" : ""}`}
+      onDragOver={(event) => {
+        event.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={() => setIsDragging(false)}
+      onDrop={(event) => {
+        event.preventDefault();
+        setIsDragging(false);
+        handleFiles(event.dataTransfer.files);
+      }}
+    >
+      <div className="flex flex-col gap-2">
+        <label className="ml-1 text-sm font-semibold uppercase tracking-wider text-text-muted">
+          Image
+        </label>
+        <div className="relative flex items-center">
+          <input
+            name="image"
+            type="url"
+            placeholder="https://example.com/menu-item.jpg"
+            value={imageValue}
+            onChange={(event) => onChange(event.target.value)}
+            className="w-full rounded-xl border border-border-muted bg-bg-light py-3 pl-4 pr-32 text-sm text-text transition-all duration-200 ease-out placeholder:text-text-muted hover:border-primary/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={isUploading}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(event) => {
+              handleFiles(event.target.files);
+              event.target.value = "";
+            }}
+          />
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              iconName="FaUpload"
+              onClick={() => fileInputRef.current?.click()}
+              isLoading={isUploading}
+              tooltip="Upload image"
+            >
+              Upload
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border-muted bg-bg-light p-2">
+        <div className="flex h-24 items-center justify-center overflow-hidden rounded-lg">
+          <MenuImage src={imageValue} alt={previewAlt} className="h-24 w-full" />
+        </div>
+        {imageValue && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            iconName="FaXmark"
+            className="mt-2 w-full"
+            onClick={() => onChange("")}
+            disabled={isUploading}
+          >
+            Remove
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const MenuManagement = () => {
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [form, setForm] = useState<MenuItemPayload>(emptyForm);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -62,14 +166,17 @@ const MenuManagement = () => {
   const [pageSize, setPageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const fetchMenu = async () => {
     setIsLoading(true);
     try {
       const response = await MenuItemService.getAll({ include_unavailable: true });
-      const payload = unwrapData<{ menu_items: MenuItem[] }>(response, { menu_items: [] });
+      const payload = unwrapData<{ menu_items: MenuItem[]; categories?: Category[] }>(response, { menu_items: [], categories: [] });
       setItems(payload.menu_items);
+      setCategories(payload.categories ?? []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -80,11 +187,6 @@ const MenuManagement = () => {
   useEffect(() => {
     fetchMenu();
   }, []);
-
-  const categories = useMemo(
-    () => Array.from(new Set(items.map((item) => item.category))).sort(),
-    [items]
-  );
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -137,7 +239,7 @@ const MenuManagement = () => {
     }));
   };
 
-  const updateForm = (key: keyof MenuItemPayload, value: string | number | boolean) => {
+  const updateForm = (key: keyof MenuItemPayload, value: string | number | boolean | null) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
@@ -149,7 +251,7 @@ const MenuManagement = () => {
 
   const startCreateItem = () => {
     setSelectedItem(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, category_id: categories[0]?.id ?? null, category: categories[0]?.name ?? "" });
     setIsFormOpen(true);
   };
 
@@ -158,6 +260,7 @@ const MenuManagement = () => {
     setForm({
       name: item.name,
       category: item.category,
+      category_id: item.category_id ?? categories.find((category) => category.name === item.category)?.id ?? null,
       description: item.description ?? "",
       price: Number(item.price),
       is_available: item.is_available,
@@ -167,7 +270,7 @@ const MenuManagement = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim() || !form.category.trim()) {
+    if (!form.name.trim() || !form.category_id) {
       notify.error("Name and category are required.");
       return;
     }
@@ -177,7 +280,7 @@ const MenuManagement = () => {
       const payload = {
         ...form,
         name: form.name.trim(),
-        category: form.category.trim(),
+        category: categories.find((category) => category.id === form.category_id)?.name ?? form.category.trim(),
         description: form.description?.trim() || null,
         image_url: form.image_url?.trim() || null,
         price: Number(form.price),
@@ -197,6 +300,59 @@ const MenuManagement = () => {
       console.error(error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    const name = form.name.trim();
+    const category = categories.find((item) => item.id === form.category_id)?.name ?? form.category.trim();
+
+    if (!name || !category) {
+      notify.error("Add a name and category before generating a description.");
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      const response = await MenuItemService.generateDescription({
+        name,
+        category,
+        price: Number(form.price) || null,
+        image_url: form.image_url?.trim() || null,
+      });
+      const payload = unwrapData<{ description: string }>(response, { description: "" });
+
+      if (!payload.description.trim()) {
+        notify.error("The generator did not return a description.");
+        return;
+      }
+
+      updateForm("description", payload.description.trim());
+      notify.success("Description generated.");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setIsUploadingImage(true);
+    try {
+      const response = await MenuItemService.uploadImage(file);
+      const payload = unwrapData<{ image_url: string }>(response, { image_url: "" });
+
+      if (!payload.image_url) {
+        notify.error("The image upload did not return a URL.");
+        return;
+      }
+
+      updateForm("image_url", payload.image_url);
+      notify.success("Image uploaded.");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -242,7 +398,7 @@ const MenuManagement = () => {
             onChange={(event) => setCategoryFilter(event.target.value)}
             options={[
               { value: "all", label: "All categories" },
-              ...categories.map((category) => ({ value: category, label: category })),
+              ...categories.map((category) => ({ value: category.name, label: category.name })),
             ]}
             fullWidth
           />
@@ -396,10 +552,47 @@ const MenuManagement = () => {
         <div className="space-y-4 not-italic">
           <div className="grid gap-4 md:grid-cols-2">
             <InputField label="Name" name="name" value={form.name} onChange={(event) => updateForm("name", event.target.value)} fullWidth required />
-            <InputField label="Category" name="category" value={form.category} onChange={(event) => updateForm("category", event.target.value)} placeholder="Rice meals, drinks, desserts" fullWidth required />
+            <Select
+              label="Category"
+              value={form.category_id ? String(form.category_id) : ""}
+              onChange={(event) => {
+                const category = categories.find((item) => item.id === Number(event.target.value));
+                updateForm("category_id", category?.id ?? null);
+                updateForm("category", category?.name ?? "");
+              }}
+              options={[
+                { value: "", label: categories.length ? "Choose category" : "Create a category first" },
+                ...categories.map((category) => ({ value: String(category.id), label: category.name })),
+              ]}
+              fullWidth
+              required
+            />
           </div>
 
-          <TextArea label="Description" name="description" value={form.description ?? ""} onChange={(event) => updateForm("description", event.target.value)} rows={2} fullWidth />
+          <div className="relative">
+            <TextArea
+              label="Description"
+              name="description"
+              value={form.description ?? ""}
+              onChange={(event) => updateForm("description", event.target.value)}
+              rows={3}
+              className="pb-14 pr-4"
+              fullWidth
+            />
+            <div className="absolute bottom-3 right-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                iconName="FaWandMagicSparkles"
+                onClick={handleGenerateDescription}
+                isLoading={isGeneratingDescription}
+                disabled={isSaving || !form.name.trim() || !form.category_id}
+              >
+                Generate
+              </Button>
+            </div>
+          </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <InputField label="Price" name="price" type="number" min={0} step="0.01" value={String(form.price)} onChange={(event) => updateForm("price", Number(event.target.value))} fullWidth required />
@@ -415,23 +608,13 @@ const MenuManagement = () => {
             />
           </div>
 
-          <div className={form.image_url ? "grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem]" : "grid gap-4"}>
-            <InputField
-              label="Image URL"
-              name="imageUrl"
-              type="url"
-              placeholder="https://example.com/menu-item.jpg"
-              value={form.image_url ?? ""}
-              onChange={(event) => updateForm("image_url", event.target.value)}
-              fullWidth
-            />
-            {form.image_url && (
-              <div className="rounded-lg border border-border-muted bg-bg-light p-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">Preview</p>
-                <MenuImage src={form.image_url} alt={form.name || "Menu item preview"} className="h-24 w-full" />
-              </div>
-            )}
-          </div>
+          <MenuImageField
+            value={form.image_url}
+            previewAlt={form.name || "Menu item preview"}
+            isUploading={isUploadingImage}
+            onChange={(value) => updateForm("image_url", value)}
+            onUpload={handleImageUpload}
+          />
         </div>
       </Modal>
     </div>

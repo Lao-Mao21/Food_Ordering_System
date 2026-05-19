@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'n8n' => [
+        'menu_description_webhook_url' => env('N8N_MENU_DESCRIPTION_WEBHOOK_URL'),
+        'menu_description_header_name' => env('N8N_MENU_DESCRIPTION_HEADER_NAME'),
+        'menu_description_header_value' => env('N8N_MENU_DESCRIPTION_HEADER_VALUE'),
+        'timeout' => env('N8N_TIMEOUT', 30),
+    ],
+
 ];

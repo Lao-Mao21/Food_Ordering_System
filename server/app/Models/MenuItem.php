@@ -11,6 +11,7 @@ class MenuItem extends Model
     protected $fillable = [
         'name',
         'category',
+        'category_id',
         'description',
         'price',
         'is_available',
@@ -24,6 +25,11 @@ class MenuItem extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    public function menuCategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
 
     public function creator(): BelongsTo
     {

@@ -13,6 +13,7 @@ const ResetPassword = React.lazy(() => import("../pages/auth/ResetPassword"));
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
 const Orders = React.lazy(() => import("../pages/Orders"));
 const MenuManagement = React.lazy(() => import("../pages/MenuManagement"));
+const Categories = React.lazy(() => import("../pages/Categories"));
 const SalesAnalytics = React.lazy(() => import("../pages/SalesAnalytics"));
 
 export const Routes = createBrowserRouter([
@@ -68,6 +69,10 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.MENU,
                     element: <MenuManagement />,
+                  },
+                  {
+                    path: PATHS.APP.CATEGORIES,
+                    element: <Categories />,
                   },
                   {
                     path: PATHS.APP.ANALYTICS,

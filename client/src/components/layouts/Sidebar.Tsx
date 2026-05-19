@@ -51,6 +51,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           roles: ['admin'],
         },
         {
+          name: "Categories",
+          icon: "FaTags",
+          path: PATHS.APP.CATEGORIES,
+          roles: ['admin'],
+        },
+        {
           name: "Analytics",
           icon: "FaChartSimple",
           path: PATHS.APP.ANALYTICS,

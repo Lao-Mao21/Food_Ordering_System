@@ -14,6 +14,7 @@ export const PATHS = {
     DASHBOARD: `${APP_ROOT}/dashboard`,
     ORDERS: `${APP_ROOT}/orders`,
     MENU: `${APP_ROOT}/menu`,
+    CATEGORIES: `${APP_ROOT}/categories`,
     ANALYTICS: `${APP_ROOT}/analytics`,
     USERS: `${APP_ROOT}/users`,
     USER_DETAIL: `${APP_ROOT}/users/:slug`,

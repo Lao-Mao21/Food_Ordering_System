@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\v1\AuthenticationController;
+use App\Http\Controllers\API\v1\CategoryController;
 use App\Http\Controllers\API\v1\MenuItemController;
 use App\Http\Controllers\API\v1\OrderController;
 use App\Http\Controllers\API\v1\SalesAnalyticsController;
@@ -28,6 +29,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::post('users/{id}/restore', [UserController::class, 'restore']);
+        Route::apiResource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::post('menu-items/generate-description', [MenuItemController::class, 'generateDescription']);
+        Route::post('menu-items/upload-image', [MenuItemController::class, 'uploadImage']);
         Route::apiResource('menu-items', MenuItemController::class)
             ->parameters(['menu-items' => 'menuItem'])
             ->except(['index', 'show']);
