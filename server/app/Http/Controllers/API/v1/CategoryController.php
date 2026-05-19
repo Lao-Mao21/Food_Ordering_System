@@ -18,6 +18,14 @@ class CategoryController extends Controller
     {
         $query = Category::query()->withCount('menuItems');
 
+        $filter = $request->input('filter', 'active');
+
+        match ($filter) {
+            'deleted' => $query->onlyTrashed(),
+            'all' => $query->withTrashed(),
+            default => $query->withoutTrashed(),
+        };
+
         if (! $request->boolean('include_inactive')) {
             $query->where('is_active', true);
         }
@@ -62,13 +70,37 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): JsonResponse
     {
-        if ($category->menuItems()->exists()) {
-            return $this->error('Move or delete menu items in this category before deleting it.', 422);
-        }
-
         $category->delete();
 
         return $this->success('Category deleted successfully.', null);
+    }
+
+    public function restore(string $id): JsonResponse
+    {
+        $category = Category::withTrashed()->findOrFail($id);
+
+        if (! $category->trashed()) {
+            return $this->error('Category is not deleted.', 400);
+        }
+
+        $category->restore();
+
+        return $this->success('Category restored successfully.', [
+            'category' => $category->refresh()->loadCount('menuItems'),
+        ]);
+    }
+
+    public function forceDestroy(string $id): JsonResponse
+    {
+        $category = Category::withTrashed()->findOrFail($id);
+
+        if ($category->menuItems()->withTrashed()->exists()) {
+            return $this->error('This category is linked to menu items and cannot be permanently deleted.', 422);
+        }
+
+        $category->forceDelete();
+
+        return $this->success('Category permanently deleted successfully.', null);
     }
 
     private function validateCategory(Request $request, ?Category $category = null): array

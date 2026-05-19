@@ -96,10 +96,10 @@ const Register: React.FC = () => {
                     <div className="relative z-10 flex flex-col items-center text-center gap-6 max-w-md">
                         <div className="space-y-3">
                             <h1 className="text-4xl lg:text-5xl font-black uppercase tracking-tighter text-text">
-                                Food Ordering
+                                OrderGood
                             </h1>
                             <p className="text-sm lg:text-base font-semibold uppercase tracking-[0.3em] text-text-muted">
-                                Secure login and registration for your food ordering system.
+                                Secure login and registration for OrderGood.
                             </p>
                         </div>
 
@@ -111,7 +111,7 @@ const Register: React.FC = () => {
                             <div className="rounded-3xl bg-bg-light p-4 shadow-inner border border-border-muted text-text">
                                 <p className="font-semibold">What you get</p>
                                 <ul className="mt-3 space-y-2 text-sm text-text-muted list-disc list-inside">
-                                    <li>Food ordering dashboard access</li>
+                                    <li>OrderGood dashboard access</li>
                                     <li>Live order tracking</li>
                                     <li>Menu and analytics management</li>
                                 </ul>
@@ -128,7 +128,7 @@ const Register: React.FC = () => {
                                     Create your account
                                 </h2>
                                 <p className="text-sm text-text-muted font-medium">
-                                    Register now and start managing your food ordering system from one place.
+                                    Register now and start managing OrderGood from one place.
                                 </p>
                             </div>
 
@@ -228,7 +228,7 @@ const Register: React.FC = () => {
                         </div>
 
                         <p className="text-center text-xs text-text-muted/60 mt-6 font-medium tracking-wide">
-                            © {new Date().getFullYear()} Food Ordering. All rights reserved.
+                            © {new Date().getFullYear()} OrderGood. All rights reserved.
                         </p>
                     </div>
                 </div>

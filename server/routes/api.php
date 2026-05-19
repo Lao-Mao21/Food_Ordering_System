@@ -4,6 +4,7 @@ use App\Http\Controllers\API\v1\AuthenticationController;
 use App\Http\Controllers\API\v1\CategoryController;
 use App\Http\Controllers\API\v1\MenuItemController;
 use App\Http\Controllers\API\v1\OrderController;
+use App\Http\Controllers\API\v1\RecycleBinController;
 use App\Http\Controllers\API\v1\SalesAnalyticsController;
 use App\Http\Controllers\API\v1\UserController;
 use Illuminate\Support\Facades\Route;
@@ -29,9 +30,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::post('users/{id}/restore', [UserController::class, 'restore']);
+        Route::delete('users/{id}/force', [UserController::class, 'forceDestroy']);
         Route::apiResource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::post('categories/{id}/restore', [CategoryController::class, 'restore']);
+        Route::delete('categories/{id}/force', [CategoryController::class, 'forceDestroy']);
         Route::post('menu-items/generate-description', [MenuItemController::class, 'generateDescription']);
         Route::post('menu-items/upload-image', [MenuItemController::class, 'uploadImage']);
+        Route::post('menu-items/{id}/restore', [MenuItemController::class, 'restore']);
+        Route::delete('menu-items/{id}/force', [MenuItemController::class, 'forceDestroy']);
+        Route::get('recycle-bin', [RecycleBinController::class, 'index']);
         Route::apiResource('menu-items', MenuItemController::class)
             ->parameters(['menu-items' => 'menuItem'])
             ->except(['index', 'show']);

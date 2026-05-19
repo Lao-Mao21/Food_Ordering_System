@@ -8,11 +8,10 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   user: User | null;
-  isPermanentDelete?: boolean;
   onSuccess?: () => void;
 };
 
-const DeleteUserModal = ({ isOpen, onClose, user, isPermanentDelete = false, onSuccess }: Props) => {
+const DeleteUserModal = ({ isOpen, onClose, user, onSuccess }: Props) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleConfirmDelete = async () => {
@@ -21,8 +20,7 @@ const DeleteUserModal = ({ isOpen, onClose, user, isPermanentDelete = false, onS
     setIsDeleting(true);
     try {
       await UserService.delete(user.id);
-      const deleteType = isPermanentDelete ? 'permanently' : 'moved to trash';
-      notify.success(`User ${deleteType} successfully!`);
+      notify.success("User moved to recycle bin successfully!");
       onSuccess?.();
       onClose();
     } catch (error) {
@@ -37,7 +35,7 @@ const DeleteUserModal = ({ isOpen, onClose, user, isPermanentDelete = false, onS
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isPermanentDelete ? 'Permanently Delete User' : 'Delete User'}
+      title='Delete User'
       size="sm"
       primaryAction={{
         label: 'Delete',
@@ -54,9 +52,7 @@ const DeleteUserModal = ({ isOpen, onClose, user, isPermanentDelete = false, onS
     >
       <div className="space-y-3">
         <p className="text-sm text-text">
-          {isPermanentDelete
-            ? `Are you sure you want to permanently delete ${user?.name}? This action cannot be undone.`
-            : `Are you sure you want to delete ${user?.name}? They can be recovered from the deleted users section.`}
+          Are you sure you want to delete {user?.name}? They can be recovered from the recycle bin.
         </p>
         {user && (
           <div className="bg-bg-light rounded-lg p-3 space-y-2 text-sm">

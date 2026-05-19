@@ -23,8 +23,8 @@ class DatabaseSeeder extends Seeder
         $admin = User::firstOrCreate(
             ['email' => 'admin@example.com'],
             [
-                'slug' => Str::slug('Food Admin'),
-                'name' => 'Food Admin',
+                'slug' => Str::slug('Admin'),
+                'name' => 'Admin',
                 'phone' => '+639000000000',
                 'role' => UserRole::ADMIN,
                 'password' => Hash::make('Password123!'),

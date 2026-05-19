@@ -44,7 +44,7 @@ class CategoryManagementTest extends TestCase
             ->assertJsonPath('data.categories.0.name', 'Rice Bowls');
     }
 
-    public function test_category_delete_is_blocked_when_menu_items_use_it(): void
+    public function test_category_with_menu_items_can_be_soft_deleted_but_not_permanently_deleted(): void
     {
         $admin = User::factory()->create(['role' => UserRole::ADMIN]);
         $category = Category::create(['name' => 'Drinks', 'is_active' => true]);
@@ -58,6 +58,11 @@ class CategoryManagementTest extends TestCase
         ]);
 
         $this->actingAs($admin)->deleteJson("/api/categories/{$category->id}")
+            ->assertOk();
+
+        $this->assertSoftDeleted('categories', ['id' => $category->id]);
+
+        $this->actingAs($admin)->deleteJson("/api/categories/{$category->id}/force")
             ->assertStatus(422);
     }
 
@@ -76,5 +81,77 @@ class CategoryManagementTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.menu_item.category', 'Desserts')
             ->assertJsonPath('data.menu_item.category_id', $category->id);
+    }
+
+    public function test_category_can_be_soft_deleted_and_restored(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $category = Category::create(['name' => 'Add-ons', 'is_active' => true]);
+
+        $this->actingAs($admin)->deleteJson("/api/categories/{$category->id}")
+            ->assertOk();
+
+        $this->assertSoftDeleted('categories', ['id' => $category->id]);
+
+        $this->actingAs($admin)->getJson('/api/recycle-bin')
+            ->assertOk()
+            ->assertJsonPath('data.categories.0.name', 'Add-ons');
+
+        $this->actingAs($admin)->postJson("/api/categories/{$category->id}/restore")
+            ->assertOk()
+            ->assertJsonPath('data.category.name', 'Add-ons');
+
+        $this->assertDatabaseHas('categories', [
+            'id' => $category->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_menu_item_can_be_soft_deleted_and_restored(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $category = Category::create(['name' => 'Drinks', 'is_active' => true]);
+        $menuItem = MenuItem::create([
+            'name' => 'Iced Tea',
+            'category' => $category->name,
+            'category_id' => $category->id,
+            'price' => 55,
+            'is_available' => true,
+        ]);
+
+        $this->actingAs($admin)->deleteJson("/api/menu-items/{$menuItem->id}")
+            ->assertOk();
+
+        $this->assertSoftDeleted('menu_items', ['id' => $menuItem->id]);
+
+        $this->actingAs($admin)->getJson('/api/recycle-bin')
+            ->assertOk()
+            ->assertJsonPath('data.menu_items.0.name', 'Iced Tea');
+
+        $this->actingAs($admin)->postJson("/api/menu-items/{$menuItem->id}/restore")
+            ->assertOk()
+            ->assertJsonPath('data.menu_item.name', 'Iced Tea');
+
+        $this->assertDatabaseHas('menu_items', [
+            'id' => $menuItem->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_user_delete_is_soft_delete_and_force_route_permanently_deletes(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $user = User::factory()->create(['role' => UserRole::GUEST]);
+
+        $this->actingAs($admin)->deleteJson("/api/users/{$user->id}")
+            ->assertOk();
+
+        $this->assertSoftDeleted('users', ['id' => $user->id]);
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+
+        $this->actingAs($admin)->deleteJson("/api/users/{$user->id}/force")
+            ->assertOk();
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
 }

@@ -20,6 +20,14 @@ class MenuItemController extends Controller
     {
         $query = MenuItem::query()->with('menuCategory');
 
+        $filter = $request->input('filter', 'active');
+
+        match ($filter) {
+            'deleted' => $query->onlyTrashed(),
+            'all' => $query->withTrashed(),
+            default => $query->withoutTrashed(),
+        };
+
         if (! $request->boolean('include_unavailable')) {
             $query->where('is_available', true);
         }
@@ -86,6 +94,29 @@ class MenuItemController extends Controller
         $menuItem->delete();
 
         return $this->success('Menu item deleted successfully.', null);
+    }
+
+    public function restore(string $id): JsonResponse
+    {
+        $menuItem = MenuItem::withTrashed()->findOrFail($id);
+
+        if (! $menuItem->trashed()) {
+            return $this->error('Menu item is not deleted.', 400);
+        }
+
+        $menuItem->restore();
+
+        return $this->success('Menu item restored successfully.', [
+            'menu_item' => $menuItem->refresh()->load('menuCategory'),
+        ]);
+    }
+
+    public function forceDestroy(string $id): JsonResponse
+    {
+        $menuItem = MenuItem::withTrashed()->findOrFail($id);
+        $menuItem->forceDelete();
+
+        return $this->success('Menu item permanently deleted successfully.', null);
     }
 
     public function generateDescription(Request $request): JsonResponse

@@ -129,7 +129,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-black text-text">Food Ordering Dashboard</h1>
+          <h1 className="text-2xl font-black text-text">OrderGood Dashboard</h1>
           <p className="mt-1 text-sm text-text-muted">Admin operations overview</p>
         </div>
         <Button variant="secondary" iconName="FaRepeat" onClick={fetchData} isLoading={isLoading}>

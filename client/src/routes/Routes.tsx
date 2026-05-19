@@ -14,6 +14,7 @@ const Dashboard = React.lazy(() => import("../pages/Dashboard"));
 const Orders = React.lazy(() => import("../pages/Orders"));
 const MenuManagement = React.lazy(() => import("../pages/MenuManagement"));
 const Categories = React.lazy(() => import("../pages/Categories"));
+const RecycleBin = React.lazy(() => import("../pages/RecycleBin"));
 const SalesAnalytics = React.lazy(() => import("../pages/SalesAnalytics"));
 
 export const Routes = createBrowserRouter([
@@ -73,6 +74,10 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.CATEGORIES,
                     element: <Categories />,
+                  },
+                  {
+                    path: PATHS.APP.RECYCLE_BIN,
+                    element: <RecycleBin />,
                   },
                   {
                     path: PATHS.APP.ANALYTICS,

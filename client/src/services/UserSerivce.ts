@@ -53,6 +53,12 @@ const UserService = {
             AxiosInstance.post(`${BASE_PREFIX}/${id}/restore`),
             "Failed to restore user"
         ),
+
+    forceDelete: (id: string | number) =>
+        handleRequest(
+            AxiosInstance.delete(`${BASE_PREFIX}/${id}/force`),
+            "Failed to permanently delete user"
+        ),
 };
 
 export default UserService;

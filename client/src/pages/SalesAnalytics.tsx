@@ -37,6 +37,14 @@ const chartColors = ["#35477d", "#7b6f35", "#2f7d5c", "#a74d45", "#4f7396"];
 const formatCurrency = (value: string | number) =>
   Number(value || 0).toLocaleString("en-PH", { style: "currency", currency: "PHP" });
 
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 const SalesAnalytics = () => {
   const [analytics, setAnalytics] = useState<SalesAnalyticsData>(emptyAnalytics);
   const [fromDate, setFromDate] = useState("");
@@ -213,6 +221,130 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
     { label: "Top Item", value: analytics.top_items[0]?.name ?? "No sales", icon: "FaUtensils" as const, valueClassName: "text-lg", caption: "Selected range" },
   ];
 
+  const handleExportPdf = () => {
+    const reportWindow = window.open("", "_blank", "width=960,height=720");
+
+    if (!reportWindow) return;
+
+    const generatedAt = new Date().toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
+    const rangeLabel = analytics.range.from && analytics.range.to
+      ? `${analytics.range.from} to ${analytics.range.to}`
+      : "Current month";
+    const topItemsRows = analytics.top_items.length
+      ? analytics.top_items.map((item, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${escapeHtml(item.name)}</td>
+            <td class="num">${item.quantity_sold}</td>
+            <td class="num">${formatCurrency(item.revenue)}</td>
+          </tr>
+        `).join("")
+      : `<tr><td colspan="4" class="empty">No completed item sales for this period.</td></tr>`;
+    const trendRows = analytics.revenue_trend.points.length
+      ? analytics.revenue_trend.points.map((point) => `
+          <tr>
+            <td>${escapeHtml(point.label)}</td>
+            <td>${escapeHtml(point.period_start)} - ${escapeHtml(point.period_end)}</td>
+            <td class="num">${point.orders}</td>
+            <td class="num">${formatCurrency(point.revenue)}</td>
+          </tr>
+        `).join("")
+      : `<tr><td colspan="4" class="empty">No trend data available.</td></tr>`;
+    const monthlyRows = analytics.monthly_revenue.map((month) => `
+      <tr>
+        <td>${escapeHtml(month.month)}</td>
+        <td class="num">${month.orders}</td>
+        <td class="num">${formatCurrency(month.revenue)}</td>
+      </tr>
+    `).join("");
+
+    reportWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>Sales Analytics Report</title>
+          <style>
+            * { box-sizing: border-box; }
+            body { margin: 0; padding: 32px; color: #0b1736; font-family: Arial, sans-serif; background: #fff; }
+            header { border-bottom: 2px solid #35477d; padding-bottom: 18px; margin-bottom: 24px; }
+            h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
+            h2 { margin: 28px 0 10px; font-size: 18px; }
+            p { margin: 6px 0; }
+            .muted { color: #5c6884; font-size: 12px; }
+            .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0 28px; }
+            .card { border: 1px solid #b7c2d8; border-radius: 8px; padding: 14px; min-height: 88px; }
+            .label { color: #35477d; font-size: 11px; text-transform: uppercase; font-weight: 700; }
+            .value { margin-top: 8px; font-size: 21px; font-weight: 800; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            th, td { border: 1px solid #c7d0e1; padding: 8px 10px; text-align: left; font-size: 12px; }
+            th { background: #edf3f8; color: #243a69; text-transform: uppercase; font-size: 11px; }
+            .num { text-align: right; }
+            .empty { text-align: center; color: #5c6884; padding: 18px; }
+            .footer { margin-top: 28px; border-top: 1px solid #c7d0e1; padding-top: 12px; font-size: 11px; color: #5c6884; }
+            @media print {
+              body { padding: 20mm; }
+              .summary { grid-template-columns: repeat(2, 1fr); }
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <header>
+            <h1>Sales Analytics Report</h1>
+            <p><strong>OrderGood</strong></p>
+            <p class="muted">Range: ${escapeHtml(rangeLabel)} | Generated: ${escapeHtml(generatedAt)}</p>
+          </header>
+
+          <section class="summary">
+            <div class="card"><div class="label">Total Revenue</div><div class="value">${formatCurrency(analytics.summary.total_revenue)}</div></div>
+            <div class="card"><div class="label">Completed Orders</div><div class="value">${analytics.summary.total_orders}</div></div>
+            <div class="card"><div class="label">Average Order</div><div class="value">${formatCurrency(analytics.summary.average_order_value)}</div></div>
+            <div class="card"><div class="label">Top Item</div><div class="value">${escapeHtml(analytics.top_items[0]?.name ?? "No sales")}</div></div>
+          </section>
+
+          <h2>Order Pipeline</h2>
+          <table>
+            <thead><tr><th>Status</th><th class="num">Orders</th></tr></thead>
+            <tbody>
+              <tr><td>Pending</td><td class="num">${analytics.summary.pending_orders}</td></tr>
+              <tr><td>Preparing</td><td class="num">${analytics.summary.preparing_orders}</td></tr>
+              <tr><td>Ready</td><td class="num">${analytics.summary.ready_orders}</td></tr>
+              <tr><td>Completed</td><td class="num">${analytics.summary.completed_orders}</td></tr>
+              <tr><td>Cancelled</td><td class="num">${analytics.summary.cancelled_orders}</td></tr>
+            </tbody>
+          </table>
+
+          <h2>Top Items</h2>
+          <table>
+            <thead><tr><th>#</th><th>Item</th><th class="num">Quantity Sold</th><th class="num">Revenue</th></tr></thead>
+            <tbody>${topItemsRows}</tbody>
+          </table>
+
+          <h2>Revenue Trend (${escapeHtml(analytics.revenue_trend.granularity)})</h2>
+          <table>
+            <thead><tr><th>Period</th><th>Date Range</th><th class="num">Orders</th><th class="num">Revenue</th></tr></thead>
+            <tbody>${trendRows}</tbody>
+          </table>
+
+          <h2>Yearly Revenue by Month</h2>
+          <table>
+            <thead><tr><th>Month</th><th class="num">Orders</th><th class="num">Revenue</th></tr></thead>
+            <tbody>${monthlyRows}</tbody>
+          </table>
+
+          <div class="footer">Generated by OrderGood.</div>
+          <script>
+            window.addEventListener("load", () => {
+              window.print();
+            });
+          </script>
+        </body>
+      </html>
+    `);
+    reportWindow.document.close();
+  };
+
   const content = (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
@@ -223,9 +355,14 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
               {analytics.range.from && analytics.range.to ? `${analytics.range.from} to ${analytics.range.to}` : "Current month"}
             </p>
           </div>
-          <Button variant="secondary" iconName="FaRepeat" onClick={() => fetchAnalytics()} isLoading={isLoading}>
-            Refresh
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" iconName="FaFilePdf" onClick={handleExportPdf} disabled={isLoading}>
+              Export PDF
+            </Button>
+            <Button variant="secondary" iconName="FaRepeat" onClick={() => fetchAnalytics()} isLoading={isLoading}>
+              Refresh
+            </Button>
+          </div>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <InputField label="From" type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} fullWidth />

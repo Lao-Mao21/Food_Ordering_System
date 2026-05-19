@@ -395,14 +395,16 @@ const Users = () => {
                         onClick={() => handleRestoreUser(user)}
                       />
                     )}
-                    <Button
-                      size='sm'
-                      variant='danger'
-                      iconName='FaTrash'
-                      tooltip='Delete user'
-                      tooltipPosition='top'
-                      onClick={() => handleDeleteUser(user)}
-                    />
+                    {filter !== 'deleted' && (
+                      <Button
+                        size='sm'
+                        variant='danger'
+                        iconName='FaTrash'
+                        tooltip='Delete user'
+                        tooltipPosition='top'
+                        onClick={() => handleDeleteUser(user)}
+                      />
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -442,7 +444,6 @@ const Users = () => {
         isOpen={isDeleteModalOpen}
         onClose={handleCancelDelete}
         user={userToDelete}
-        isPermanentDelete={filter === 'deleted'}
         onSuccess={handleDeleteSuccess}
       />
 

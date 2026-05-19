@@ -57,6 +57,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           roles: ['admin'],
         },
         {
+          name: "Recycle Bin",
+          icon: "FaRecycle",
+          path: PATHS.APP.RECYCLE_BIN,
+          roles: ['admin'],
+        },
+        {
           name: "Analytics",
           icon: "FaChartSimple",
           path: PATHS.APP.ANALYTICS,

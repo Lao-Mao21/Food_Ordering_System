@@ -50,6 +50,18 @@ const MenuItemService = {
       AxiosInstance.delete(`${BASE_PREFIX}/${id}`),
       "Failed to delete menu item."
     ),
+
+  restore: (id: number | string) =>
+    handleRequest(
+      AxiosInstance.post(`${BASE_PREFIX}/${id}/restore`),
+      "Failed to restore menu item."
+    ),
+
+  forceDelete: (id: number | string) =>
+    handleRequest(
+      AxiosInstance.delete(`${BASE_PREFIX}/${id}/force`),
+      "Failed to permanently delete menu item."
+    ),
 };
 
 export default MenuItemService;

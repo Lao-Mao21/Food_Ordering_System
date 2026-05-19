@@ -285,8 +285,6 @@ const Categories = () => {
                             iconName="FaTrash"
                             onClick={() => handleDelete(category)}
                             isLoading={deletingId === category.id}
-                            disabled={(category.menu_items_count ?? 0) > 0}
-                            tooltip={(category.menu_items_count ?? 0) > 0 ? "Category has menu items" : undefined}
                           >
                             Delete
                           </Button>
