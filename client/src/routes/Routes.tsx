@@ -2,7 +2,7 @@
 import React from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { PATHS } from "./path";
-import { ProtectedRoute, GuestRoute, RoleRoute } from "./guards";
+import { ProtectedRoute, GuestRoute, RoleRoute, AppEntryRoute } from "./guards";
 import RootLayout from "./RootLayout";
 
 const Login = React.lazy(() => import("../pages/auth/Login"));
@@ -55,7 +55,16 @@ export const Routes = createBrowserRouter([
             children: [
               {
                 index: true,
-                element: <Navigate to={PATHS.APP.DASHBOARD} replace />,
+                element: <AppEntryRoute />,
+              },
+              {
+                element: <RoleRoute allowedRoles={['admin', 'guest']} />,
+                children: [
+                  {
+                    path: PATHS.APP.ORDERS,
+                    element: <Orders />,
+                  },
+                ],
               },
               {
                 element: <RoleRoute allowedRoles={['admin']} />,
@@ -63,10 +72,6 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.DASHBOARD,
                     element: <Dashboard />,
-                  },
-                  {
-                    path: PATHS.APP.ORDERS,
-                    element: <Orders />,
                   },
                   {
                     path: PATHS.APP.MENU,

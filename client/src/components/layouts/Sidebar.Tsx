@@ -40,7 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           name: "Orders",
           icon: "FaReceipt",
           path: PATHS.APP.ORDERS,
-          roles: ['admin'],
+          roles: ['admin', 'guest'],
         },
         {
           name: "Menu",

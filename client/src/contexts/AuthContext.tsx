@@ -8,7 +8,7 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (credentials: { email: string; password: string }) => Promise<void>;
+    login: (credentials: { email: string; password: string }) => Promise<User | null>;
     logout: () => Promise<void>;
     refreshUser: () => Promise<User | null>;
 }
@@ -53,7 +53,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (credentials: { email: string; password: string }) => {
         await AuthService.csrf();
         const res = await AuthService.login(credentials) as CurrentUserResponse;
-        setUser(res?.data?.data?.user ?? null);
+        const nextUser = res?.data?.data?.user ?? null;
+        setUser(nextUser);
+        return nextUser;
     };
 
     const logout = async () => {

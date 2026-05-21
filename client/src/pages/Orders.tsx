@@ -9,6 +9,7 @@ import { notify } from "../util/notify";
 import { unwrapData } from "../util/apiResponse";
 import type { MenuItem } from "../interfaces/menu";
 import type { Order, OrderStatus, OrderType, PaymentMethod, PaymentStatus } from "../interfaces/order";
+import { useAuth } from "../contexts/AuthContext";
 
 type CartLine = {
   menu_item_id: number;
@@ -56,6 +57,8 @@ const statusClasses: Record<OrderStatus, string> = {
 };
 
 const Orders = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -88,25 +91,28 @@ const Orders = () => {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [ordersResponse, menuResponse] = await Promise.all([
-        OrderService.getAll(statusFilter === "active" ? {} : { status: statusFilter }),
-        MenuItemService.getAll(),
-      ]);
-
-      const orderPayload = unwrapData<{ orders: Order[] }>(ordersResponse, { orders: [] });
+      const menuResponse = await MenuItemService.getAll();
       const menuPayload = unwrapData<{ menu_items: MenuItem[] }>(menuResponse, { menu_items: [] });
-      const visibleOrders = statusFilter === "active"
-        ? orderPayload.orders.filter((order) => !["completed", "cancelled"].includes(order.status))
-        : orderPayload.orders;
 
-      setOrders(visibleOrders);
       setMenuItems(menuPayload.menu_items);
+
+      if (isAdmin) {
+        const ordersResponse = await OrderService.getAll(statusFilter === "active" ? {} : { status: statusFilter });
+        const orderPayload = unwrapData<{ orders: Order[] }>(ordersResponse, { orders: [] });
+        const visibleOrders = statusFilter === "active"
+          ? orderPayload.orders.filter((order) => !["completed", "cancelled"].includes(order.status))
+          : orderPayload.orders;
+
+        setOrders(visibleOrders);
+      } else {
+        setOrders([]);
+      }
     } catch (error) {
       console.error(error);
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter]);
+  }, [isAdmin, statusFilter]);
 
   useEffect(() => {
     fetchData();
@@ -341,6 +347,7 @@ const Orders = () => {
 
   const content = (
     <div className="space-y-6">
+      {isAdmin && (
       <div className="flex flex-col gap-4 rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -415,6 +422,7 @@ const Orders = () => {
           />
         </div>
       </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="space-y-6">
@@ -609,6 +617,7 @@ const Orders = () => {
           </div>
         </div>
         
+        {isAdmin && (
         <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm xl:col-span-2">
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -717,6 +726,7 @@ const Orders = () => {
               </>
             )}
           </div>
+        )}
       </div>
 
       <Modal

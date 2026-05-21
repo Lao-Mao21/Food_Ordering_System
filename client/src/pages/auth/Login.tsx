@@ -39,9 +39,9 @@ const Login: React.FC = () => {
 
         setIsLoading(true);
         try {
-            await login({ email, password });
+            const user = await login({ email, password });
             notify.success("Login successful!");
-            navigate(PATHS.APP.DASHBOARD, { replace: true });
+            navigate(user?.role === "admin" ? PATHS.APP.DASHBOARD : PATHS.APP.ORDERS, { replace: true });
         } catch (err) {
             const axiosErr = err as AxiosError<{ message?: string; errors?: Record<string, string[]> }>;
             const status = axiosErr.response?.status;

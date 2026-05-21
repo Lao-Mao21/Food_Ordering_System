@@ -28,7 +28,7 @@ export const ProtectedRoute: React.FC = () => {
 };
 
 export const GuestRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -39,7 +39,7 @@ export const GuestRoute: React.FC = () => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to={PATHS.APP.DASHBOARD} replace />;
+    return <Navigate to={user?.role === "admin" ? PATHS.APP.DASHBOARD : PATHS.APP.ORDERS} replace />;
   }
 
   return (
@@ -47,6 +47,12 @@ export const GuestRoute: React.FC = () => {
       <Outlet />
     </Suspense>
   );
+};
+
+export const AppEntryRoute: React.FC = () => {
+  const { user } = useAuth();
+
+  return <Navigate to={user?.role === "admin" ? PATHS.APP.DASHBOARD : PATHS.APP.ORDERS} replace />;
 };
 
 interface RoleRouteProps {

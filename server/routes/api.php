@@ -21,11 +21,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('menu-items', [MenuItemController::class, 'index']);
     Route::get('menu-items/{menuItem}', [MenuItemController::class, 'show']);
-    Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show', 'update']);
+    Route::post('orders', [OrderController::class, 'store']);
     Route::post('orders/notes/clean', [OrderController::class, 'cleanNote']);
-    Route::post('orders/{order}/status', [OrderController::class, 'updateStatus']);
 
     Route::middleware('role:admin')->group(function () {
+        Route::apiResource('orders', OrderController::class)->only(['index', 'show', 'update']);
+        Route::post('orders/{order}/status', [OrderController::class, 'updateStatus']);
         Route::apiResource('users', UserController::class);
         Route::post('users/{id}/restore', [UserController::class, 'restore']);
         Route::delete('users/{id}/force', [UserController::class, 'forceDestroy']);
