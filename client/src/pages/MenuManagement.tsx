@@ -167,6 +167,7 @@ const MenuManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [isCleaningName, setIsCleaningName] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
@@ -334,6 +335,33 @@ const MenuManagement = () => {
       console.error(error);
     } finally {
       setIsGeneratingDescription(false);
+    }
+  };
+
+  const handleCleanName = async () => {
+    const name = form.name.trim();
+
+    if (!name) {
+      notify.error("Add a menu item name before fixing grammar.");
+      return;
+    }
+
+    setIsCleaningName(true);
+    try {
+      const response = await MenuItemService.cleanName({ name });
+      const payload = unwrapData<{ name: string }>(response, { name: "" });
+
+      if (!payload.name.trim()) {
+        notify.error("The grammar fixer did not return a name.");
+        return;
+      }
+
+      updateForm("name", payload.name.trim());
+      notify.success("Name fixed.");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsCleaningName(false);
     }
   };
 
@@ -555,7 +583,29 @@ const MenuManagement = () => {
       >
         <div className="space-y-4 not-italic">
           <div className="grid gap-4 md:grid-cols-2">
-            <InputField label="Name" name="name" value={form.name} onChange={(event) => updateForm("name", event.target.value)} fullWidth required />
+            <InputField
+              label="Name"
+              name="name"
+              value={form.name}
+              onChange={(event) => updateForm("name", event.target.value)}
+              className="pr-36"
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  iconName="FaWandMagicSparkles"
+                  onClick={handleCleanName}
+                  isLoading={isCleaningName}
+                  disabled={isSaving || !form.name.trim()}
+                  className="text-xs h-fit w-fit p-0"
+                >
+                  Grammar
+                </Button>
+              }
+              fullWidth
+              required
+            />
             <Select
               label="Category"
               value={form.category_id ? String(form.category_id) : ""}

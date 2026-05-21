@@ -29,6 +29,12 @@ const MenuItemService = {
       "Failed to generate menu item description."
     ),
 
+  cleanName: (data: { name: string }) =>
+    handleRequest(
+      AxiosInstance.post(`${BASE_PREFIX}/clean-name`, data),
+      "Failed to fix menu item name."
+    ),
+
   uploadImage: (file: File) => {
     const formData = new FormData();
     formData.append("image", file);

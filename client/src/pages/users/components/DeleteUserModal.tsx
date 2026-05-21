@@ -9,13 +9,21 @@ type Props = {
   onClose: () => void;
   user: User | null;
   onSuccess?: () => void;
+  currentUserId?: number | null;
 };
 
-const DeleteUserModal = ({ isOpen, onClose, user, onSuccess }: Props) => {
+const DeleteUserModal = ({ isOpen, onClose, user, onSuccess, currentUserId }: Props) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const isCurrentUser = !!user && user.id === currentUserId;
 
   const handleConfirmDelete = async () => {
     if (!user) return;
+
+    if (isCurrentUser) {
+      notify.error("You cannot delete the account you are currently using.");
+      onClose();
+      return;
+    }
 
     setIsDeleting(true);
     try {
@@ -42,7 +50,8 @@ const DeleteUserModal = ({ isOpen, onClose, user, onSuccess }: Props) => {
         onClick: handleConfirmDelete,
         variant: 'danger',
         isLoading: isDeleting,
-        loadingText: 'Deleting...'
+        loadingText: 'Deleting...',
+        disabled: isCurrentUser,
       }}
       secondaryAction={{
         label: 'Cancel',
@@ -52,7 +61,10 @@ const DeleteUserModal = ({ isOpen, onClose, user, onSuccess }: Props) => {
     >
       <div className="space-y-3">
         <p className="text-sm text-text">
-          Are you sure you want to delete {user?.name}? They can be recovered from the recycle bin.
+          {isCurrentUser
+            ? "You cannot delete the account you are currently using."
+            : `Are you sure you want to delete ${user?.name}? They can be recovered from the recycle bin.`
+          }
         </p>
         {user && (
           <div className="bg-bg-light rounded-lg p-3 space-y-2 text-sm">

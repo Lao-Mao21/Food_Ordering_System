@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Traits\ApiResponse;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
@@ -161,6 +163,59 @@ class OrderController extends Controller
         return $this->update($request->merge($validated), $order);
     }
 
+    public function cleanNote(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'note' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $webhookUrl = config('services.n8n.order_note_cleaner_webhook_url');
+
+        if (! $webhookUrl) {
+            return $this->error('The order note grammar fixer is not configured.', 400);
+        }
+
+        try {
+            $client = Http::timeout((int) config('services.n8n.timeout', 30))->acceptJson();
+            $headerName = config('services.n8n.order_note_cleaner_header_name');
+            $headerValue = config('services.n8n.order_note_cleaner_header_value');
+
+            if ($headerName && $headerValue) {
+                $client = $client->withHeaders([$headerName => $headerValue]);
+            }
+
+            $response = $client->post($webhookUrl, [
+                'note' => trim($validated['note']),
+            ]);
+        } catch (ConnectionException) {
+            return $this->error('The order note grammar fixer could not be reached. Check that n8n is running and listening for the test event.', 424);
+        }
+
+        if ($response->failed()) {
+            if ($response->status() === 401 || $response->status() === 403) {
+                return $this->error('The order note grammar fixer rejected the request. Check the n8n Header Auth credential.', 424);
+            }
+
+            $message = $response->json('message');
+            $hint = $response->json('hint');
+            $details = collect([$message, $hint])
+                ->filter(fn ($detail) => is_string($detail) && trim($detail) !== '')
+                ->implode(' ');
+
+            return $this->error($details ?: 'The order note grammar fixer returned an error.', 424);
+        }
+
+        $note = $this->extractCleanedNote($response->json());
+
+        if (! $note) {
+            return $this->error('The order note grammar fixer did not return a note.', 422);
+        }
+
+        return $this->success('Order note fixed successfully.', [
+            'note' => $note,
+        ]);
+    }
+
     private function nextOrderNumber(): string
     {
         $prefix = 'FO-' . now()->format('Ymd') . '-';
@@ -176,4 +231,40 @@ class OrderController extends Controller
 
         return $prefix . str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
     }
+
+    private function extractCleanedNote(mixed $payload): ?string
+    {
+        if (is_array($payload) && array_is_list($payload)) {
+            $payload = $payload[0] ?? null;
+        }
+
+        if (is_string($payload) && trim($payload) !== '') {
+            return trim($payload);
+        }
+
+        $candidates = [
+            data_get($payload, 'note'),
+            data_get($payload, 'output.note'),
+            data_get($payload, 'output'),
+            data_get($payload, 'text'),
+            data_get($payload, 'message'),
+            data_get($payload, 'data.note'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '') {
+                $decoded = json_decode($candidate, true);
+                $decodedNote = data_get($decoded, 'note');
+
+                if (is_string($decodedNote) && trim($decodedNote) !== '') {
+                    return trim($decodedNote);
+                }
+
+                return trim($candidate);
+            }
+        }
+
+        return null;
+    }
+
 }

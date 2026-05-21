@@ -9,6 +9,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   iconName?: keyof typeof FaIcons;
   fullWidth?: boolean;
   autoComplete?: string;
+  action?: React.ReactNode;
 }
 
 export const InputField = React.forwardRef<HTMLInputElement, InputProps>(
@@ -20,6 +21,7 @@ export const InputField = React.forwardRef<HTMLInputElement, InputProps>(
       iconName,
       fullWidth = false,
       autoComplete = "auto",
+      action,
       className = '',
       required,
       disabled,
@@ -80,6 +82,12 @@ export const InputField = React.forwardRef<HTMLInputElement, InputProps>(
             `}
             {...props}
           />
+
+          {action && (
+            <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
+              {action}
+            </div>
+          )}
         </div>
 
         {error && (

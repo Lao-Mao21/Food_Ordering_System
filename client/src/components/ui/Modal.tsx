@@ -10,6 +10,7 @@ interface ModalAction {
     loadingText?: string;
     variant?: ButtonVariant;
     iconName?: keyof typeof FaIcons;
+    disabled?: boolean;
 }
 
 interface ModalProps {
@@ -118,6 +119,7 @@ export const Modal: React.FC<ModalProps> = ({
                                         isLoading={primaryAction.isLoading}
                                         loadingText={primaryAction.loadingText}
                                         iconName={primaryAction.iconName}
+                                        disabled={primaryAction.disabled}
                                         size="md">
                                         {primaryAction.label}
                                     </Button>

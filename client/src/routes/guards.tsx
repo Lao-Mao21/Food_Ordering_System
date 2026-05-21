@@ -5,10 +5,6 @@ import { PATHS } from "./path";
 import { LoadingSpinner, Button } from "../components/ui";
 import type { Role } from "../interfaces/user";
 
-/**
- * Wraps authenticated routes.
- * Redirects to /login if the user is not logged in.
- */
 export const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -31,10 +27,6 @@ export const ProtectedRoute: React.FC = () => {
   );
 };
 
-/**
- * Wraps guest-only routes (login, register).
- * Redirects to dashboard if already logged in.
- */
 export const GuestRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -57,17 +49,18 @@ export const GuestRoute: React.FC = () => {
   );
 };
 
-/**
- * Wraps role-restricted routes.
- * Shows an access denied screen if the user's role is not in the allowed list.
- */
 interface RoleRouteProps {
   allowedRoles: Role[];
 }
 
 export const RoleRoute: React.FC<RoleRouteProps> = ({ allowedRoles }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate(PATHS.LOGIN, { replace: true });
+  };
 
   if (!user || !allowedRoles.includes(user.role)) {
     return (
@@ -84,9 +77,9 @@ export const RoleRoute: React.FC<RoleRouteProps> = ({ allowedRoles }) => {
           <Button
             variant="primary"
             iconName="FaArrowLeft"
-            onClick={() => navigate(PATHS.APP.DASHBOARD, { replace: true })}
+            onClick={handleSignOut}
           >
-            Back to Dashboard
+            Go Back
           </Button>
         </div>
       </div>

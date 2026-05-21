@@ -9,6 +9,7 @@ import { useDateFormatter } from '../../../hooks/index';
 import { PATHS } from '../../../routes/path';
 import EditUserModal from './EditUserModal';
 import DeleteUserModal from './DeleteUserModal';
+import { useAuth } from '../../../contexts/AuthContext';
 
 
 const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
@@ -42,6 +43,7 @@ const RoleBadge = ({ role }: { role: string }) => {
 const UserDetail = () => {
     const { slug } = useParams<{ slug: string }>(); 
     const navigate = useNavigate();
+    const { user: currentUser } = useAuth();
 
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -50,6 +52,7 @@ const UserDetail = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const dateFormat = useDateFormatter();
+    const isCurrentUser = !!user && user.id === currentUser?.id;
 
     
     const fetchUser = useCallback(async () => {
@@ -100,7 +103,14 @@ const UserDetail = () => {
                         <Button
                             variant="danger"
                             iconName="FaTrash"
-                            onClick={() => setIsDeleteModalOpen(true)}
+                            onClick={() => {
+                                if (isCurrentUser) {
+                                    notify.error("You cannot delete the account you are currently using.");
+                                    return;
+                                }
+                                setIsDeleteModalOpen(true);
+                            }}
+                            disabled={isCurrentUser}
                         >
                             Delete
                         </Button>
@@ -219,6 +229,7 @@ const UserDetail = () => {
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 user={user}
+                currentUserId={currentUser?.id ?? null}
                 onSuccess={() => navigate(PATHS.APP.USERS)}
             />
 

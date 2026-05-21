@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('menu-items', [MenuItemController::class, 'index']);
     Route::get('menu-items/{menuItem}', [MenuItemController::class, 'show']);
     Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show', 'update']);
+    Route::post('orders/notes/clean', [OrderController::class, 'cleanNote']);
     Route::post('orders/{order}/status', [OrderController::class, 'updateStatus']);
 
     Route::middleware('role:admin')->group(function () {
@@ -32,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('categories/{id}/restore', [CategoryController::class, 'restore']);
         Route::delete('categories/{id}/force', [CategoryController::class, 'forceDestroy']);
         Route::post('menu-items/generate-description', [MenuItemController::class, 'generateDescription']);
+        Route::post('menu-items/clean-name', [MenuItemController::class, 'cleanName']);
         Route::post('menu-items/upload-image', [MenuItemController::class, 'uploadImage']);
         Route::post('menu-items/{id}/restore', [MenuItemController::class, 'restore']);
         Route::delete('menu-items/{id}/force', [MenuItemController::class, 'forceDestroy']);

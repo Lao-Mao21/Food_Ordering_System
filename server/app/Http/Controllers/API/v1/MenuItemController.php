@@ -178,6 +178,59 @@ class MenuItemController extends Controller
         ]);
     }
 
+    public function cleanName(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $webhookUrl = config('services.n8n.menu_name_cleaner_webhook_url');
+
+        if (! $webhookUrl) {
+            return $this->error('The menu name grammar fixer is not configured.', 400);
+        }
+
+        try {
+            $client = Http::timeout((int) config('services.n8n.timeout', 30))->acceptJson();
+            $headerName = config('services.n8n.menu_name_cleaner_header_name');
+            $headerValue = config('services.n8n.menu_name_cleaner_header_value');
+
+            if ($headerName && $headerValue) {
+                $client = $client->withHeaders([$headerName => $headerValue]);
+            }
+
+            $response = $client->post($webhookUrl, [
+                'name' => trim($validated['name']),
+            ]);
+        } catch (ConnectionException) {
+            return $this->error('The menu name grammar fixer could not be reached. Check that n8n is running and listening for the test event.', 424);
+        }
+
+        if ($response->failed()) {
+            if ($response->status() === 401 || $response->status() === 403) {
+                return $this->error('The menu name grammar fixer rejected the request. Check the n8n Header Auth credential.', 424);
+            }
+
+            $message = $response->json('message');
+            $hint = $response->json('hint');
+            $details = collect([$message, $hint])
+                ->filter(fn ($detail) => is_string($detail) && trim($detail) !== '')
+                ->implode(' ');
+
+            return $this->error($details ?: 'The menu name grammar fixer returned an error.', 424);
+        }
+
+        $name = $this->extractCleanedName($response->json());
+
+        if (! $name) {
+            return $this->error('The menu name grammar fixer did not return a name.', 422);
+        }
+
+        return $this->success('Menu item name fixed successfully.', [
+            'name' => $name,
+        ]);
+    }
+
     public function uploadImage(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -246,6 +299,41 @@ class MenuItemController extends Controller
 
                 if (is_string($decodedDescription) && trim($decodedDescription) !== '') {
                     return trim($decodedDescription);
+                }
+
+                return trim($candidate);
+            }
+        }
+
+        return null;
+    }
+
+    private function extractCleanedName(mixed $payload): ?string
+    {
+        if (is_array($payload) && array_is_list($payload)) {
+            $payload = $payload[0] ?? null;
+        }
+
+        if (is_string($payload) && trim($payload) !== '') {
+            return trim($payload);
+        }
+
+        $candidates = [
+            data_get($payload, 'name'),
+            data_get($payload, 'output.name'),
+            data_get($payload, 'output'),
+            data_get($payload, 'text'),
+            data_get($payload, 'message'),
+            data_get($payload, 'data.name'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '') {
+                $decoded = json_decode($candidate, true);
+                $decodedName = data_get($decoded, 'name');
+
+                if (is_string($decodedName) && trim($decodedName) !== '') {
+                    return trim($decodedName);
                 }
 
                 return trim($candidate);

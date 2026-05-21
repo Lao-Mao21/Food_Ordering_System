@@ -177,6 +177,11 @@ const Users = () => {
   };
 
   const handleDeleteUser = (user: User) => {
+    if (user.id === currentUser?.id) {
+      notify.error("You cannot delete the account you are currently using.");
+      return;
+    }
+
     setUserToDelete(user);
     setIsDeleteModalOpen(true);
   };
@@ -298,8 +303,11 @@ const Users = () => {
               </TableCell>
             </TableRow>
           ) : (
-            users.map((user) => (
-              <TableRow key={user.id}>
+            users.map((user) => {
+              const isCurrentUser = user.id === currentUser?.id;
+
+              return (
+                <TableRow key={user.id}>
                 <TableCell>
                   {user.avatar ? (
                     <img
@@ -345,11 +353,13 @@ const Users = () => {
                       tooltip='Delete user'
                       tooltipPosition='top'
                       onClick={() => handleDeleteUser(user)}
+                      disabled={isCurrentUser}
                     />
                   </div>
                 </TableCell>
               </TableRow>
-            ))
+              );
+            })
           )}
         </TableBody>
       </Table>
@@ -385,6 +395,7 @@ const Users = () => {
         isOpen={isDeleteModalOpen}
         onClose={handleCancelDelete}
         user={userToDelete}
+        currentUserId={currentUser?.id ?? null}
         onSuccess={handleDeleteSuccess}
       />
 

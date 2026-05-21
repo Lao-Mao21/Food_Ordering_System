@@ -34,6 +34,13 @@ const OrderService = {
       AxiosInstance.post(`${BASE_PREFIX}/${id}/status`, data),
       "Failed to update order status."
     ),
+
+  cleanNote: (data: { note: string }) =>
+    handleRequest(
+      AxiosInstance.post(`${BASE_PREFIX}/notes/clean`, data),
+      "Failed to fix order note grammar."
+    ),
+
 };
 
 export default OrderService;
