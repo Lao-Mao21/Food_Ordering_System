@@ -40,5 +40,6 @@ Route::middleware('auth:sanctum')->group(function () {
             ->parameters(['menu-items' => 'menuItem'])
             ->except(['index', 'show']);
         Route::get('analytics/sales', [SalesAnalyticsController::class, 'index']);
+        Route::post('analytics/summary/generate', [SalesAnalyticsController::class, 'generateSummary']);
     });
 });

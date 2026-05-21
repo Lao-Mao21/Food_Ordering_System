@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "../../components/ui/index";
 import { InputField, PasswordInputField } from "../../components/ui/forms/index";
 import { notify } from "../../util/notify";
@@ -8,8 +8,9 @@ import { PATHS } from "../../routes/path";
 
 const ResetPassword: React.FC = () => {
     const { token } = useParams<{ token: string }>();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const [email, setEmail] = useState("");
+    const [email, setEmail] = useState(searchParams.get("email") ?? "");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [errors, setErrors] = useState<{ email?: string; password?: string; password_confirmation?: string }>({});

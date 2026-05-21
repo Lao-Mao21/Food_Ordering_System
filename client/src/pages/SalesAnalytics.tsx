@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "../components/layouts";
-import { Button, Icon, LoadingSpinner } from "../components/ui";
+import { Button, Icon, LoadingSpinner, Modal } from "../components/ui";
 import { InputField, Select } from "../components/ui/forms";
 import { TablePagination } from "../components/ui/table/Table";
 import AnalyticsService from "../services/AnalyticsService";
 import { unwrapData } from "../util/apiResponse";
+import { notify } from "../util/notify";
 import type { MonthlyRevenue, RevenueTrendPoint, SalesAnalytics as SalesAnalyticsData, TopItem } from "../interfaces/analytics";
 
 const emptyAnalytics: SalesAnalyticsData = {
@@ -39,6 +40,11 @@ type ChartTooltip = {
   yPct: number;
   caption?: string;
 };
+type GeneratedAnalyticsSummary = {
+  summary: string;
+  insight: string;
+  recommendation: string;
+};
 
 const chartColors = ["#35477d", "#7b6f35", "#2f7d5c", "#a74d45", "#4f7396"];
 
@@ -65,6 +71,9 @@ const [topItemSort, setTopItemSort] = useState<TopItemSort>("revenue:desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [generatedSummary, setGeneratedSummary] = useState<GeneratedAnalyticsSummary | null>(null);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
   const fetchAnalytics = async (override?: { from?: string; to?: string }) => {
     setIsLoading(true);
@@ -374,6 +383,36 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
     reportWindow.document.close();
   };
 
+  const handleGenerateSummary = async () => {
+    setIsSummaryLoading(true);
+
+    try {
+      const response = await AnalyticsService.generateSummary({
+        range: analytics.range,
+        summary: analytics.summary,
+        revenue_trend: analytics.revenue_trend,
+        monthly_revenue: analytics.monthly_revenue,
+        top_items: analytics.top_items,
+        yearly_top_items: analytics.yearly_top_items,
+      });
+      const result = unwrapData<GeneratedAnalyticsSummary>(response, {
+        summary: "",
+        insight: "",
+        recommendation: "",
+      });
+
+      setGeneratedSummary(result);
+      setIsSummaryModalOpen(true);
+      notify.success("Analytics summary generated.");
+    } catch (error) {
+      const requestError = error as { response?: { data?: { message?: string } } };
+      notify.error(requestError.response?.data?.message || "Unable to generate analytics summary.");
+      console.error(error);
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  };
+
   const content = (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
@@ -385,6 +424,15 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              iconName="FaWandMagicSparkles"
+              onClick={handleGenerateSummary}
+              isLoading={isSummaryLoading}
+              disabled={isLoading}
+            >
+              Generate Summary
+            </Button>
             <Button variant="outline" iconName="FaFilePdf" onClick={handleExportPdf} disabled={isLoading}>
               Export PDF
             </Button>
@@ -414,6 +462,42 @@ const itemShareYear = analytics.range.to ? new Date(analytics.range.to).getFullY
           </Button>
         </div>
       </div>
+
+      <Modal
+        isOpen={isSummaryModalOpen && !!generatedSummary}
+        onClose={() => setIsSummaryModalOpen(false)}
+        title="AI Analytics Summary"
+        size="lg"
+        primaryAction={{
+          label: "Close",
+          onClick: () => setIsSummaryModalOpen(false),
+          variant: "primary",
+          iconName: "FaCheck",
+        }}
+      >
+        {generatedSummary && (
+          <div className="space-y-4 not-italic">
+            <p className="text-sm text-text-muted">
+              Generated from the currently loaded analytics data.
+            </p>
+
+            <div className="grid gap-4">
+              <div className="rounded-lg border border-border-muted bg-bg-light p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Summary</p>
+                <p className="mt-2 text-sm leading-relaxed text-text">{generatedSummary.summary || "No summary returned."}</p>
+              </div>
+              <div className="rounded-lg border border-border-muted bg-bg-light p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Insight</p>
+                <p className="mt-2 text-sm leading-relaxed text-text">{generatedSummary.insight || "No insight returned."}</p>
+              </div>
+              <div className="rounded-lg border border-border-muted bg-bg-light p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Recommendation</p>
+                <p className="mt-2 text-sm leading-relaxed text-text">{generatedSummary.recommendation || "No recommendation returned."}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {isLoading ? (
         <div className="rounded-lg border border-border-muted bg-bg-light py-24">

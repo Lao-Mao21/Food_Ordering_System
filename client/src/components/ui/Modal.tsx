@@ -64,7 +64,7 @@ export const Modal: React.FC<ModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
 
             <div className="fixed inset-0 bg-bg-dark/10 backdrop-blur-xs" />
 

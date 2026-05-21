@@ -86,7 +86,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
 
         {isLoading && (
-          <div className="inset-0 flex items-center justify-center bg-inherit z-10 rounded-2xl">
+          <div className="absolute inset-0 flex items-center justify-center bg-inherit z-10 rounded-2xl">
             <LoadingSpinner
               size="custom"
               customSize={spinnerSizeMap[size]}
@@ -96,9 +96,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </div>
         )}
 
-        <div className={`${isLoading ? 'hidden' : 'flex'} items-center gap-2 transition-opacity duration-200`}>
+        <div className={`flex items-center gap-2 transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
 
-          {iconPosition === 'left' && iconName && !isLoading && (
+          {iconPosition === 'left' && iconName && (
             <Icon
               iconName={iconName}
               size={size === 'sm' ? 14 : 18}
@@ -108,7 +108,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
           {children && <span>{children}</span>}
 
-          {iconPosition === 'right' && iconName && !isLoading && (
+          {iconPosition === 'right' && iconName && (
             <Icon
               iconName={iconName}
               size={size === 'sm' ? 14 : 18}

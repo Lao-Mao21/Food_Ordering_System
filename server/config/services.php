@@ -39,6 +39,9 @@ return [
         'menu_description_webhook_url' => env('N8N_MENU_DESCRIPTION_WEBHOOK_URL'),
         'menu_description_header_name' => env('N8N_MENU_DESCRIPTION_HEADER_NAME'),
         'menu_description_header_value' => env('N8N_MENU_DESCRIPTION_HEADER_VALUE'),
+        'analytics_summary_webhook_url' => env('N8N_ANALYTICS_SUMMARY_WEBHOOK_URL'),
+        'analytics_summary_header_name' => env('N8N_ANALYTICS_SUMMARY_HEADER_NAME'),
+        'analytics_summary_header_value' => env('N8N_ANALYTICS_SUMMARY_HEADER_VALUE'),
         'timeout' => env('N8N_TIMEOUT', 30),
     ],
 

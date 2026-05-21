@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Traits\ApiResponse;
 use Carbon\Carbon;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class SalesAnalyticsController extends Controller
 {
@@ -112,6 +114,69 @@ class SalesAnalyticsController extends Controller
         ]);
     }
 
+    public function generateSummary(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'range' => ['required', 'array'],
+            'range.from' => ['nullable', 'string', 'max:40'],
+            'range.to' => ['nullable', 'string', 'max:40'],
+            'summary' => ['required', 'array'],
+            'revenue_trend' => ['nullable', 'array'],
+            'monthly_revenue' => ['nullable', 'array'],
+            'top_items' => ['nullable', 'array'],
+            'yearly_top_items' => ['nullable', 'array'],
+        ]);
+
+        $webhookUrl = config('services.n8n.analytics_summary_webhook_url');
+
+        if (! $webhookUrl) {
+            return $this->error('The analytics summary generator is not configured.', 400);
+        }
+
+        try {
+            $client = Http::timeout((int) config('services.n8n.timeout', 30))->acceptJson();
+            $headerName = config('services.n8n.analytics_summary_header_name');
+            $headerValue = config('services.n8n.analytics_summary_header_value');
+
+            if ($headerName && $headerValue) {
+                $client = $client->withHeaders([$headerName => $headerValue]);
+            }
+
+            $response = $client->post($webhookUrl, [
+                'range' => $validated['range'],
+                'summary' => $validated['summary'],
+                'revenue_trend' => $validated['revenue_trend'] ?? [],
+                'monthly_revenue' => $validated['monthly_revenue'] ?? [],
+                'top_items' => $validated['top_items'] ?? [],
+                'yearly_top_items' => $validated['yearly_top_items'] ?? [],
+            ]);
+        } catch (ConnectionException) {
+            return $this->error('The analytics summary generator could not be reached. Check that n8n is running and listening for the test event.', 424);
+        }
+
+        if ($response->failed()) {
+            if ($response->status() === 401 || $response->status() === 403) {
+                return $this->error('The analytics summary generator rejected the request. Check the n8n Header Auth credential.', 424);
+            }
+
+            $message = $response->json('message');
+            $hint = $response->json('hint');
+            $details = collect([$message, $hint])
+                ->filter(fn ($detail) => is_string($detail) && trim($detail) !== '')
+                ->implode(' ');
+
+            return $this->error($details ?: 'The analytics summary generator returned an error.', 424);
+        }
+
+        $generated = $this->extractGeneratedSummary($response->json());
+
+        if (! $generated['summary'] && ! $generated['insight'] && ! $generated['recommendation']) {
+            return $this->error('The analytics summary generator did not return a usable summary.', 422);
+        }
+
+        return $this->success('Analytics summary generated successfully.', $generated);
+    }
+
     private function topItemsQuery()
     {
         return DB::table('order_items')
@@ -201,5 +266,91 @@ class SalesAnalyticsController extends Controller
             'granularity' => $granularity,
             'points' => array_values($buckets),
         ];
+    }
+
+    private function extractGeneratedSummary(mixed $payload): array
+    {
+        if (is_array($payload) && array_is_list($payload)) {
+            $payload = $payload[0] ?? null;
+        }
+
+        $rawOutput = data_get($payload, 'output') ?? data_get($payload, 'data') ?? data_get($payload, 'result') ?? data_get($payload, 'text') ?? data_get($payload, 'message');
+
+        if (is_array($rawOutput) && array_is_list($rawOutput)) {
+            $rawOutput = $rawOutput[0] ?? null;
+        }
+
+        if (is_string($rawOutput)) {
+            $decoded = json_decode($this->stripJsonFence($rawOutput), true);
+            $payload = is_array($decoded) ? $decoded : ['summary' => $rawOutput];
+        } elseif (is_array($rawOutput)) {
+            $payload = $rawOutput;
+        }
+
+        $summary = $this->findTextValue($payload, ['summary', 'analytics_summary', 'executive_summary', 'overview']);
+        $insight = $this->findTextValue($payload, ['insight', 'key_insight', 'analysis', 'observation']);
+        $recommendation = $this->findTextValue($payload, ['recommendation', 'recommendations', 'suggested_action', 'next_action', 'action']);
+
+        if (! $summary && ! $insight && ! $recommendation) {
+            $fallback = $this->firstStringValue($payload);
+            $summary = $fallback ?: '';
+        }
+
+        return [
+            'summary' => is_string($summary) ? trim($summary) : '',
+            'insight' => is_string($insight) ? trim($insight) : '',
+            'recommendation' => is_string($recommendation) ? trim($recommendation) : '',
+        ];
+    }
+
+    private function findTextValue(mixed $payload, array $keys): ?string
+    {
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        foreach ($payload as $key => $value) {
+            $normalizedKey = strtolower((string) $key);
+
+            if (in_array($normalizedKey, $keys, true) && is_string($value) && trim($value) !== '') {
+                return $value;
+            }
+
+            if (is_array($value)) {
+                $nested = $this->findTextValue($value, $keys);
+
+                if ($nested) {
+                    return $nested;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function firstStringValue(mixed $payload): ?string
+    {
+        if (is_string($payload) && trim($payload) !== '') {
+            return $payload;
+        }
+
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        foreach ($payload as $value) {
+            $found = $this->firstStringValue($value);
+
+            if ($found) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    private function stripJsonFence(string $value): string
+    {
+        return trim(preg_replace('/^```(?:json)?|```$/m', '', trim($value)) ?? $value);
     }
 }
