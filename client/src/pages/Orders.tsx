@@ -618,27 +618,35 @@ const Orders = () => {
                           <TableCell>{order.payment_status}</TableCell>
                           <TableCell align="right">{formatCurrency(order.total)}</TableCell>
                           <TableCell align="center">
-                            <div className="flex justify-center gap-2">
-                              {advanceTo && (
+                            <div className="mx-auto grid w-[19rem] grid-cols-2 gap-2">
+                              {advanceTo ? (
                                 <Button
                                   size="sm"
                                   iconName="FaArrowRight"
+                                  fullWidth
+                                  className="min-w-0 whitespace-nowrap px-3"
                                   onClick={() => handleAdvanceStatus(order)}
                                   isLoading={updatingOrder?.id === order.id && updatingOrder.action === "advance"}
                                 >
                                   {advanceTo}
                                 </Button>
+                              ) : (
+                                <span className="min-h-9" />
                               )}
-                              {!["completed", "cancelled"].includes(order.status) && (
+                              {!["completed", "cancelled"].includes(order.status) ? (
                                 <Button
                                   size="sm"
                                   variant="danger"
                                   iconName="FaXmark"
+                                  fullWidth
+                                  className="min-w-0 whitespace-nowrap px-3"
                                   onClick={() => handleCancel(order)}
                                   isLoading={updatingOrder?.id === order.id && updatingOrder.action === "cancel"}
                                 >
                                   Cancel
                                 </Button>
+                              ) : (
+                                <span className="min-h-9" />
                               )}
                             </div>
                           </TableCell>

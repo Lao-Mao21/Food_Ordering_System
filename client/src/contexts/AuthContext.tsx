@@ -10,7 +10,7 @@ interface AuthContextType {
     isLoading: boolean;
     login: (credentials: { email: string; password: string }) => Promise<void>;
     logout: () => Promise<void>;
-    refreshUser: () => Promise<void>;
+    refreshUser: () => Promise<User | null>;
 }
 
 
@@ -32,9 +32,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const refreshUser = useCallback(async () => {
         try {
             const res = await AuthService.me() as CurrentUserResponse;
-            setUser(res?.data?.user ?? null);
+            const nextUser = res?.data?.user ?? null;
+            setUser(nextUser);
+            return nextUser;
         } catch {
             setUser(null);
+            return null;
         }
     }, []);
 

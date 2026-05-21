@@ -19,6 +19,7 @@ import type { User } from '../../interfaces/user';
 import { notify } from '../../util/notify';
 import { useDebounce, useDateFormatter } from '../../hooks/index';
 import { PATHS } from '../../routes/path';
+import { useAuth } from '../../contexts/AuthContext';
 
 type SortState = {
   key: keyof User;
@@ -44,6 +45,7 @@ type UsersResponse = {
 
 const Users = () => {
   const navigate = useNavigate();
+  const { user: currentUser, refreshUser, logout } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationMeta>({
@@ -145,12 +147,33 @@ const Users = () => {
   };
 
   const handleUserSuccess = async () => {
-    await fetchUsers();
+    const editedCurrentUser = selectedUser?.id === currentUser?.id;
 
     setIsCreateModalOpen(false);
     setIsEditModalOpen(false);
-
     setSelectedUser(null);
+
+    if (!editedCurrentUser) {
+      await fetchUsers();
+      return;
+    }
+
+    const refreshedUser = await refreshUser();
+
+    if (!refreshedUser) {
+      notify.error("Your session changed. Please log in again.");
+      navigate(PATHS.LOGIN, { replace: true });
+      return;
+    }
+
+    if (refreshedUser.role !== "admin") {
+      notify.error("Your account no longer has admin access. Please log in with an admin account.");
+      await logout();
+      navigate(PATHS.LOGIN, { replace: true });
+      return;
+    }
+
+    await fetchUsers();
   };
 
   const handleDeleteUser = (user: User) => {

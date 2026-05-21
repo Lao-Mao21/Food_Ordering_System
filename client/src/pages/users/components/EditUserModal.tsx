@@ -40,6 +40,9 @@ type ValidationErrorResponse = {
 const EditUserModal = ({ isOpen, onClose, onSuccess, user }: Props) => {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
+    const avatarPreviewUrl = user?.avatar
+        ? `${import.meta.env.VITE_STORAGE_URL}/${user.avatar}`
+        : null;
 
     const initialFormState: EditUserFormData = {
         id: "",
@@ -163,11 +166,14 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user }: Props) => {
             <form className="space-y-4">
 
                 <FileUploadField
+                    key={`${user?.id ?? "new"}-${isOpen ? "open" : "closed"}`}
                     label="Avatar"
                     name="avatar"
                     accept="image/jpg,image/jpeg,image/png"
                     onFileSelect={handleFileSelect}
                     error={errors.avatar}
+                    previewUrl={avatarPreviewUrl}
+                    previewAlt={user?.name ? `${user.name} avatar` : "Current avatar"}
                     fullWidth
                 />
 

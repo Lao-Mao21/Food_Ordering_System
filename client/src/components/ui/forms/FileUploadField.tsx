@@ -10,6 +10,8 @@ interface FileUploadFieldProps {
   onFileSelect: (files: File[]) => void;
   error?: string;
   fullWidth?: boolean;
+  previewUrl?: string | null;
+  previewAlt?: string;
 }
 
 export const FileUploadField = ({
@@ -21,6 +23,8 @@ export const FileUploadField = ({
   onFileSelect,
   error,
   fullWidth = false,
+  previewUrl,
+  previewAlt = 'Selected file preview',
 }: FileUploadFieldProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const id = useId();
@@ -149,7 +153,22 @@ export const FileUploadField = ({
         />
 
         
-        {files.length === 0 && (
+        {files.length === 0 && previewUrl && !multiple && (
+          <div className="absolute inset-0 z-0 p-2">
+            <div className="relative h-full w-full overflow-hidden rounded-lg">
+              <img
+                src={previewUrl}
+                alt={previewAlt}
+                className="h-full w-full object-contain"
+              />
+              <div className="absolute bottom-2 left-2 rounded-lg border border-border-muted bg-bg-light/90 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-text-muted">
+                Current image
+              </div>
+            </div>
+          </div>
+        )}
+
+        {files.length === 0 && !previewUrl && (
           <div className="flex flex-col items-center gap-1 text-center">
             <Icon iconName="FaCloud" size={28} className="text-text-muted" />
             <span className="text-sm text-text">
@@ -184,6 +203,7 @@ export const FileUploadField = ({
                 {file.type.startsWith('image/') ? (
                   <img
                     src={previews[index]}
+                    alt={file.name}
                     className={`
                       w-full h-full
                       ${multiple ? 'object-cover' : 'object-contain'}

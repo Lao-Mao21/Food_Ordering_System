@@ -101,7 +101,7 @@ const MenuImageField = ({ value, previewAlt, isUploading, onChange, onUpload }: 
             placeholder="https://example.com/menu-item.jpg"
             value={imageValue}
             onChange={(event) => onChange(event.target.value)}
-            className="w-full rounded-xl border border-border-muted bg-bg-light py-3 pl-4 pr-32 text-sm text-text transition-all duration-200 ease-out placeholder:text-text-muted hover:border-primary/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full h-24 rounded-xl border border-border-muted bg-bg-light py-3 pl-4 pr-32 text-sm text-text transition-all duration-200 ease-out placeholder:text-text-muted hover:border-primary/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-40"
             disabled={isUploading}
           />
           <input

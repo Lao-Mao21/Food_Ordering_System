@@ -38,6 +38,7 @@ type ValidationErrorResponse = {
 const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
+    const [uploadResetKey, setUploadResetKey] = useState(0);
 
     const initialFormState: UserFormData = {
         avatar: null,
@@ -96,6 +97,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
             await UserService.create(formData);
             notify.success("User created successfully!");
             setForm({...initialFormState});
+            setUploadResetKey((key) => key + 1);
             setErrors({});
             onClose();
             onSuccess();
@@ -144,6 +146,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
             <form className="space-y-4">
 
                 <FileUploadField
+                    key={uploadResetKey}
                     label="Avatar"
                     name="avatar"
                     accept="image/jpg,image/jpeg,image/png"
