@@ -49,16 +49,6 @@ class OrderService {
     );
   }
 
-  Future<String> cleanNote(String note) async {
-    final response = await _dio.post(
-      ApiConstants.cleanOrderNote,
-      data: {'note': note},
-    );
-
-    final data = response.data['data'] as Map<String, dynamic>;
-    return data['note'] as String? ?? note;
-  }
-
   Future<OrderModel> updateMyOrderNote(int id, String note) async {
     final response = await _dio.put(
       ApiConstants.myOrder(id),

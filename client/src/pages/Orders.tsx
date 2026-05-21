@@ -83,7 +83,6 @@ const Orders = () => {
   const [isOrderListOpen, setIsOrderListOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isCleaningNote, setIsCleaningNote] = useState(false);
   const [updatingOrder, setUpdatingOrder] = useState<{ id: number; action: OrderAction } | null>(null);
   const [isClearFormConfirmOpen, setIsClearFormConfirmOpen] = useState(false);
   const [isClearCartConfirmOpen, setIsClearCartConfirmOpen] = useState(false);
@@ -279,33 +278,6 @@ const Orders = () => {
     }
   };
 
-  const handleCleanNote = async () => {
-    const note = notes.trim();
-
-    if (!note) {
-      notify.error("Add a note before fixing grammar.");
-      return;
-    }
-
-    setIsCleaningNote(true);
-    try {
-      const response = await OrderService.cleanNote({ note });
-      const payload = unwrapData<{ note: string }>(response, { note: "" });
-
-      if (!payload.note.trim()) {
-        notify.error("The grammar fixer did not return a note.");
-        return;
-      }
-
-      setNotes(payload.note.trim());
-      notify.success("Note fixed.");
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsCleaningNote(false);
-    }
-  };
-
   const nextStatus = (status: OrderStatus): OrderStatus | null => {
     if (status === "pending") return "preparing";
     if (status === "preparing") return "ready";
@@ -479,29 +451,12 @@ const Orders = () => {
                 />
                 <InputField label="Discount" type="number" min={0} step="0.01" value={String(discount)} onChange={(event) => setDiscount(Number(event.target.value))} fullWidth />
               </div>
-              <div className="relative">
-                <TextArea
-                  label="Notes"
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  className="pb-14 pr-4"
-                  fullWidth
-                />
-                <div className="absolute bottom-3 right-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    iconName="FaWandMagicSparkles"
-                    onClick={handleCleanNote}
-                    isLoading={isCleaningNote}
-                    disabled={isSaving || !notes.trim()}
-                    className="text-xs h-fit w-fit p-0"
-                  >
-                    Grammar
-                  </Button>
-                </div>
-              </div>
+              <TextArea
+                label="Notes"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                fullWidth
+              />
             </div>
           </div>
           <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">

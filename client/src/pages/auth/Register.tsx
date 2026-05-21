@@ -4,9 +4,21 @@ import { Button } from "../../components/ui/index";
 import { InputField, PasswordInputField } from "../../components/ui/forms/index";
 import AuthService from "../../services/AuthService";
 import { notify } from "../../util/notify";
+import { unwrapData } from "../../util/apiResponse";
 import { PATHS } from "../../routes/path";
 import BrandLogo from "../../assets/OrderGood.jpg";
 import type { AxiosError } from "axios";
+
+type GeneratedPasswordPayload = {
+    password?: string;
+    passwordd?: string;
+    generated_password?: string;
+    output?: string | {
+        password?: string;
+        passwordd?: string;
+        generated_password?: string;
+    };
+};
 
 const Register: React.FC = () => {
     const navigate = useNavigate();
@@ -16,6 +28,7 @@ const Register: React.FC = () => {
     const [passwordConfirmation, setPasswordConfirmation] = useState("");
     const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; password_confirmation?: string }>({});
     const [isLoading, setIsLoading] = useState(false);
+    const [isGeneratingPassword, setIsGeneratingPassword] = useState(false);
 
     const validate = (): boolean => {
         const newErrors: { name?: string; email?: string; password?: string; password_confirmation?: string } = {};
@@ -78,6 +91,34 @@ const Register: React.FC = () => {
             }
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleGeneratePassword = async () => {
+        setIsGeneratingPassword(true);
+        try {
+            const response = await AuthService.generatePassword();
+            const payload = unwrapData<GeneratedPasswordPayload>(response, {});
+            const generatedPassword =
+                payload.password ||
+                payload.passwordd ||
+                payload.generated_password ||
+                (typeof payload.output === "string" ? payload.output : payload.output?.password || payload.output?.passwordd || payload.output?.generated_password);
+
+            if (!generatedPassword) {
+                notify.error("The password generator did not return a password.");
+                return;
+            }
+
+            setPassword(generatedPassword);
+            setPasswordConfirmation(generatedPassword);
+            setErrors((prev) => ({ ...prev, password: undefined, password_confirmation: undefined }));
+            notify.success("Password generated.");
+        } catch (err) {
+            const axiosErr = err as AxiosError<{ message?: string }>;
+            notify.error(axiosErr.response?.data?.message || "Unable to generate a password.");
+        } finally {
+            setIsGeneratingPassword(false);
         }
     };
 
@@ -171,6 +212,19 @@ const Register: React.FC = () => {
                                         if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
                                     }}
                                     error={errors.password}
+                                    action={
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            iconName="FaWandMagicSparkles"
+                                            onClick={handleGeneratePassword}
+                                            isLoading={isGeneratingPassword}
+                                            disabled={isLoading}
+                                            className="h-7 min-w-7 px-1.5 text-[0px] [&_svg]:mr-0"
+                                            tooltip="Generate password"
+                                        />
+                                    }
                                     fullWidth
                                     required
                                 />

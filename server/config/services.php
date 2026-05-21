@@ -45,9 +45,9 @@ return [
         'analytics_summary_webhook_url' => env('N8N_ANALYTICS_SUMMARY_WEBHOOK_URL'),
         'analytics_summary_header_name' => env('N8N_ANALYTICS_SUMMARY_HEADER_NAME'),
         'analytics_summary_header_value' => env('N8N_ANALYTICS_SUMMARY_HEADER_VALUE'),
-        'order_note_cleaner_webhook_url' => env('N8N_ORDER_NOTE_CLEANER_WEBHOOK_URL'),
-        'order_note_cleaner_header_name' => env('N8N_ORDER_NOTE_CLEANER_HEADER_NAME'),
-        'order_note_cleaner_header_value' => env('N8N_ORDER_NOTE_CLEANER_HEADER_VALUE'),
+        'random_password_webhook_url' => env('N8N_RANDOM_PASSWORD_WEBHOOK_URL'),
+        'random_password_header_name' => env('N8N_RANDOM_PASSWORD_HEADER_NAME'),
+        'random_password_header_value' => env('N8N_RANDOM_PASSWORD_HEADER_VALUE'),
         'timeout' => env('N8N_TIMEOUT', 30),
     ],
 

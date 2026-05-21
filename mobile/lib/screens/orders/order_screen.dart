@@ -34,7 +34,6 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   String _orderType = 'dine_in';
   String _paymentMethod = 'cash';
   bool _isSubmitting = false;
-  bool _isCleaningNote = false;
   int _sectionIndex = 0;
 
   @override
@@ -72,22 +71,6 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
 
   void _removeItem(int id) {
     setState(() => _cart.remove(id));
-  }
-
-  Future<void> _cleanNote() async {
-    final note = _notesController.text.trim();
-    if (note.isEmpty) return;
-
-    setState(() => _isCleaningNote = true);
-    try {
-      final fixed = await ref.read(orderServiceProvider).cleanNote(note);
-      _notesController.text = fixed;
-      _showMessage('Note cleaned.');
-    } on DioException catch (error) {
-      _showMessage(error.response?.data['message'] as String? ?? 'Unable to clean note.');
-    } finally {
-      if (mounted) setState(() => _isCleaningNote = false);
-    }
   }
 
   Future<void> _submitOrder() async {
@@ -413,23 +396,9 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
               controller: _notesController,
               minLines: 3,
               maxLines: 5,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Notes',
                 alignLabelWithHint: true,
-                suffixIcon: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: TextButton.icon(
-                    onPressed: _isCleaningNote ? null : _cleanNote,
-                    icon: _isCleaningNote
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.auto_fix_high, size: 16),
-                    label: const Text('Grammar'),
-                  ),
-                ),
               ),
             ),
           ],

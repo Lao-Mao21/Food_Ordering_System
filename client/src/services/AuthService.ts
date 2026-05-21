@@ -22,6 +22,12 @@ const AuthService = {
             { returnFullResponse: true }
         ),
 
+    generatePassword: () =>
+        handleRequest(
+            AxiosInstance.post("auth/password/generate"),
+            "Unable to generate a password."
+        ),
+
     sendResetLink: (data: { email: string }) =>
         handleRequest(
             AxiosInstance.post("auth/password/forgot", data),

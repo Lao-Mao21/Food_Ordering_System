@@ -598,7 +598,7 @@ const MenuManagement = () => {
                   onClick={handleCleanName}
                   isLoading={isCleaningName}
                   disabled={isSaving || !form.name.trim()}
-                  className="text-xs h-fit w-fit p-0"
+                  className="h-8 px-2 text-xs"
                 >
                   Grammar
                 </Button>

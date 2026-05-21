@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('auth/register', [AuthenticationController::class, 'register']);
 Route::post('auth/login', [AuthenticationController::class, 'login']);
+Route::post('auth/password/generate', [AuthenticationController::class, 'generatePassword']);
 Route::post('auth/password/forgot', [AuthenticationController::class, 'sendResetLink']);
 Route::post('auth/password/reset', [AuthenticationController::class, 'resetPassword']);
 
@@ -25,7 +26,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('orders/my', [OrderController::class, 'myOrders']);
     Route::put('orders/{order}/my', [OrderController::class, 'updateMyOrder']);
     Route::delete('orders/{order}/my', [OrderController::class, 'deleteMyOrder']);
-    Route::post('orders/notes/clean', [OrderController::class, 'cleanNote']);
 
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('orders', OrderController::class)->only(['index', 'show', 'update']);

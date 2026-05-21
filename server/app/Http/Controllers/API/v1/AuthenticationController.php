@@ -6,10 +6,12 @@ use App\Models\User;
 use App\Enums\UserRole;
 use App\Traits\ApiResponse;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRules;
@@ -106,6 +108,57 @@ class AuthenticationController extends Controller
         );
     }
 
+    public function generatePassword(): JsonResponse
+    {
+        $webhookUrl = config('services.n8n.random_password_webhook_url');
+
+        if (! $webhookUrl) {
+            return $this->error('The random password generator is not configured.', 400);
+        }
+
+        try {
+            $client = Http::timeout((int) config('services.n8n.timeout', 30))->acceptJson();
+            $headerName = config('services.n8n.random_password_header_name');
+            $headerValue = config('services.n8n.random_password_header_value');
+
+            if ($headerName && $headerValue) {
+                $client = $client->withHeaders([$headerName => $headerValue]);
+            }
+
+            $response = $client->post($webhookUrl, [
+                'purpose' => 'registration',
+                'min_length' => 12,
+                'requires' => ['uppercase', 'lowercase', 'number', 'symbol'],
+            ]);
+        } catch (ConnectionException) {
+            return $this->error('The random password generator could not be reached. Check that n8n is running and listening for the test event.', 424);
+        }
+
+        if ($response->failed()) {
+            if ($response->status() === 401 || $response->status() === 403) {
+                return $this->error('The random password generator rejected the request. Check the n8n Header Auth credential.', 424);
+            }
+
+            $message = $response->json('message');
+            $hint = $response->json('hint');
+            $details = collect([$message, $hint])
+                ->filter(fn ($detail) => is_string($detail) && trim($detail) !== '')
+                ->implode(' ');
+
+            return $this->error($details ?: 'The random password generator returned an error.', 424);
+        }
+
+        $password = $this->extractGeneratedPassword($response->json());
+
+        if (! $password) {
+            return $this->error('The random password generator did not return a password.', 422);
+        }
+
+        return $this->success('Password generated successfully.', [
+            'password' => $password,
+        ]);
+    }
+
     public function sendResetLink(Request $request): JsonResponse
     {
         $request->validate([
@@ -192,6 +245,48 @@ class AuthenticationController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return $this->success('Logged out successfully.', null, 200);
+    }
+
+    private function extractGeneratedPassword(mixed $payload): ?string
+    {
+        if (is_array($payload) && array_is_list($payload)) {
+            $payload = $payload[0] ?? null;
+        }
+
+        if (is_string($payload) && trim($payload) !== '') {
+            return trim($payload);
+        }
+
+        $candidates = [
+            data_get($payload, 'password'),
+            data_get($payload, 'passwordd'),
+            data_get($payload, 'generated_password'),
+            data_get($payload, 'output.password'),
+            data_get($payload, 'output.passwordd'),
+            data_get($payload, 'output.generated_password'),
+            data_get($payload, 'output'),
+            data_get($payload, 'text'),
+            data_get($payload, 'message'),
+            data_get($payload, 'data.password'),
+            data_get($payload, 'data.passwordd'),
+            data_get($payload, 'data.generated_password'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '') {
+                $decoded = json_decode($candidate, true);
+                $decodedPassword = data_get($decoded, 'password');
+                $decodedPassword ??= data_get($decoded, 'passwordd');
+
+                if (is_string($decodedPassword) && trim($decodedPassword) !== '') {
+                    return trim($decodedPassword);
+                }
+
+                return trim($candidate);
+            }
+        }
+
+        return null;
     }
 }
 

@@ -9,6 +9,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   iconName?: keyof typeof FaIcons;
   fullWidth?: boolean;
   autoComplete?: string;
+  action?: React.ReactNode;
 }
 
 export const PasswordInputField = React.forwardRef<HTMLInputElement, InputProps>(
@@ -20,6 +21,7 @@ export const PasswordInputField = React.forwardRef<HTMLInputElement, InputProps>
       iconName = 'FaLock',
       fullWidth = false,
       autoComplete = 'off',
+      action,
       className = '',
       required,
       disabled,
@@ -77,7 +79,7 @@ export const PasswordInputField = React.forwardRef<HTMLInputElement, InputProps>
             className={`
               peer ${baseInputStyles}
               ${iconName ? 'pl-11' : ''}
-              pr-11
+              ${action ? 'pr-24' : 'pr-11'}
               ${
                 error
                   ? 'border-danger focus:border-danger focus:ring-danger/20'
@@ -87,6 +89,12 @@ export const PasswordInputField = React.forwardRef<HTMLInputElement, InputProps>
             `}
             {...props}
           />
+
+          {action && (
+            <div className="absolute right-10 flex items-center">
+              {action}
+            </div>
+          )}
 
           <button
             type="button"
