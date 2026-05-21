@@ -14,7 +14,6 @@ import { InputField } from '../../components/ui/forms';
 import CreateUserModal from './components/CreateUserModal';
 import EditUserModal from './components/EditUserModal';
 import DeleteUserModal from './components/DeleteUserModal';
-import RestoreUserModal from './components/RestoreUserModal';
 import UserService from '../../services/UserSerivce';
 import type { User } from '../../interfaces/user';
 import { notify } from '../../util/notify';
@@ -59,22 +58,6 @@ const Users = () => {
     direction: "asc",
   });
 
-  const [filter, setFilter] = useState<'active' | 'deleted' | 'all'>('active');
-  const filters = {
-    active: {
-      icon: 'FaCheck',
-      label: 'Active Users',
-    },
-    deleted: {
-      icon: 'FaTrash',
-      label: 'Deleted Users',
-    },
-    all: {
-      icon: 'FaList',
-      label: 'All Users',
-    },
-  } as const;
-
   const [searchTerm, setSearchTerm] = useState("");
   const isSearching = searchTerm?.trim() !== "";
   const debouncedSearchTerm = useDebounce(searchTerm);
@@ -91,7 +74,7 @@ const Users = () => {
         search: debouncedSearchTerm,
         sort_by: sort.key,
         sort_order: sort.direction,
-        filter: filter,
+        filter: 'active',
       });
 
       const typedResponse = response as UsersResponse;
@@ -113,7 +96,7 @@ const Users = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearchTerm, filter, sort.direction, sort.key]);
+  }, [debouncedSearchTerm, sort.direction, sort.key]);
 
   useEffect(() => {
     setPage(1);
@@ -150,8 +133,6 @@ const Users = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
-  const [userToRestore, setUserToRestore] = useState<User | null>(null);
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
@@ -187,29 +168,26 @@ const Users = () => {
     setUserToDelete(null);
   };
 
-  const handleRestoreUser = (user: User) => {
-    setUserToRestore(user);
-    setIsRestoreModalOpen(true);
-  };
-
-  const handleRestoreSuccess = async () => {
-    await fetchUsers(page, pageSize);
-    setUserToRestore(null);
-  };
-
-  const handleCancelRestore = () => {
-    setIsRestoreModalOpen(false);
-    setUserToRestore(null);
-  };
-
   const content = (
     <div className="space-y-6">
-      <div className="flex gap-4 items-end">
-        <div className="flex-1">
+      <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-black text-text">Users</h1>
+            <p className="mt-1 text-sm text-text-muted">
+              Manage active admin and staff accounts. Deleted users are handled in Recycle Bin.
+            </p>
+          </div>
+          <Button variant='primary' iconName='FaPlus' onClick={() => setIsCreateModalOpen(true)}>
+            Create User
+          </Button>
+        </div>
+
+        <div className="mt-4">
           <InputField
             label='Search'
             name='search'
-            placeholder='Searching user by name, email.'
+            placeholder='Search by name or email'
             fullWidth
             iconName='FaMagnifyingGlass'
             value={searchTerm}
@@ -219,33 +197,6 @@ const Users = () => {
             }}
           />
         </div>
-        <Button variant='primary' iconName='FaPlus' onClick={() => setIsCreateModalOpen(true)}>
-          Create User
-        </Button>
-      </div>
-
-      <div className="gap-2 bg-bg-light rounded-xl p-1 flex flex-wrap w-fit">
-        {(Object.keys(filters) as Array<keyof typeof filters>).map((f) => {
-          const { icon, label } = filters[f];
-          return (
-            <Button
-              key={f}
-              variant='primary'
-              onClick={() => setFilter(f)}
-              iconName={icon}
-              className={`relative px-4 py-2.5 rounded-lg font-semibold uppercase text-xs transition-all duration-300 flex items-center gap-2 group ${filter === f
-                ? 'bg-primary text-bg-dark shadow-lg shadow-primary/30'
-                : 'bg-transparent text-text hover:bg-bg-light/50'
-                }`}
-            >
-              <span>{label}</span>
-
-              {filter === f && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-primary/0 via-primary to-primary/0 rounded-full tab-indicator" />
-              )}
-            </Button>
-          );
-        })}
       </div>
 
       <Table>
@@ -314,7 +265,7 @@ const Users = () => {
                   </h2>
 
                   <p className="text-sm text-center text-text-muted">
-                    We couldn't find any users matching your criteria. Try adjusting your filters or add a new user.
+                    We couldn't find any active users matching your search. Try another keyword or add a new user.
                   </p>
 
                   <Button variant='primary' iconName='FaPlus' onClick={() => setIsCreateModalOpen(true)}>
@@ -364,26 +315,14 @@ const Users = () => {
                       className='text-info hover:text-info hover:bg-info/10'
                       onClick={() => handleEditUser(user)}
                     />
-                    {filter === 'deleted' && (
-                      <Button
-                        size='sm'
-                        variant='primary'
-                        iconName='FaArrowRotateLeft'
-                        tooltip='Restore user'
-                        tooltipPosition='top'
-                        onClick={() => handleRestoreUser(user)}
-                      />
-                    )}
-                    {filter !== 'deleted' && (
-                      <Button
-                        size='sm'
-                        variant='danger'
-                        iconName='FaTrash'
-                        tooltip='Delete user'
-                        tooltipPosition='top'
-                        onClick={() => handleDeleteUser(user)}
-                      />
-                    )}
+                    <Button
+                      size='sm'
+                      variant='danger'
+                      iconName='FaTrash'
+                      tooltip='Delete user'
+                      tooltipPosition='top'
+                      onClick={() => handleDeleteUser(user)}
+                    />
                   </div>
                 </TableCell>
               </TableRow>
@@ -425,14 +364,6 @@ const Users = () => {
         user={userToDelete}
         onSuccess={handleDeleteSuccess}
       />
-
-      <RestoreUserModal
-        isOpen={isRestoreModalOpen}
-        onClose={handleCancelRestore}
-        user={userToRestore}
-        onSuccess={handleRestoreSuccess}
-      />
-
 
     </div>
   );

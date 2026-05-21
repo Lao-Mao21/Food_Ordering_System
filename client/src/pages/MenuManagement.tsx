@@ -169,6 +169,7 @@ const MenuManagement = () => {
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
 
   const fetchMenu = async () => {
     setIsLoading(true);
@@ -356,14 +357,17 @@ const MenuManagement = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    const itemName = items.find((item) => item.id === id)?.name ?? "Menu item";
-    setDeletingId(id);
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
+
+    const itemName = itemToDelete.name;
+    setDeletingId(itemToDelete.id);
     try {
-      await MenuItemService.delete(id);
+      await MenuItemService.delete(itemToDelete.id);
       notify.success(`Menu item deleted: ${itemName}.`);
       await fetchMenu();
-      if (selectedItem?.id === id) resetForm();
+      if (selectedItem?.id === itemToDelete.id) resetForm();
+      setItemToDelete(null);
     } catch (error) {
       console.error(error);
     } finally {
@@ -507,7 +511,7 @@ const MenuManagement = () => {
                             size="sm"
                             variant="danger"
                             iconName="FaTrash"
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => setItemToDelete(item)}
                             isLoading={deletingId === item.id}
                           >
                             Delete
@@ -615,6 +619,29 @@ const MenuManagement = () => {
             onChange={(value) => updateForm("image_url", value)}
             onUpload={handleImageUpload}
           />
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        title="Delete Menu Item"
+        size="sm"
+        primaryAction={{
+          label: "Delete",
+          onClick: handleDelete,
+          isLoading: deletingId === itemToDelete?.id,
+          variant: "danger",
+          iconName: "FaTrash",
+        }}
+        secondaryAction={{
+          label: "Cancel",
+          onClick: () => setItemToDelete(null),
+          variant: "ghost",
+        }}
+      >
+        <div className="not-italic text-sm leading-relaxed text-text-muted">
+          Delete <span className="font-bold text-text">{itemToDelete?.name}</span>? It will move to the Recycle Bin and can be restored later.
         </div>
       </Modal>
     </div>

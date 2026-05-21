@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MainLayout } from "../components/layouts";
-import { Button, LoadingSpinner } from "../components/ui";
+import { Button, LoadingSpinner, Modal } from "../components/ui";
 import { InputField, Select, TextArea } from "../components/ui/forms";
 import { Table, TableBody, TableCell, TableHeader, TablePagination, TableRow } from "../components/ui/table/Table";
 import MenuItemService from "../services/MenuItemService";
@@ -81,6 +81,8 @@ const Orders = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [updatingOrder, setUpdatingOrder] = useState<{ id: number; action: OrderAction } | null>(null);
+  const [isClearFormConfirmOpen, setIsClearFormConfirmOpen] = useState(false);
+  const [isClearCartConfirmOpen, setIsClearCartConfirmOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -230,6 +232,10 @@ const Orders = () => {
     setPaymentStatus("pending");
     setDiscount(0);
     setNotes("");
+  };
+
+  const clearCart = () => {
+    setCart([]);
   };
 
   const handleCreateOrder = async () => {
@@ -385,7 +391,18 @@ const Orders = () => {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="space-y-6">
           <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
-            <h2 className="mb-4 text-xl font-black text-text">Create Order</h2>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-xl font-black text-text">Create Order</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                iconName="FaRotateLeft"
+                onClick={() => setIsClearFormConfirmOpen(true)}
+                disabled={isSaving}
+              >
+                Clear All
+              </Button>
+            </div>
             <div className="space-y-4">
               <InputField label="Customer" value={customerName} onChange={(event) => setCustomerName(event.target.value)} fullWidth required />
               <InputField label="Phone" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} fullWidth />
@@ -430,9 +447,14 @@ const Orders = () => {
             </div>
           </div>
           <div className="rounded-lg border border-border-muted bg-bg-light p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-black text-text">Cart</h2>
-              <span className="text-lg font-black text-primary">{formatCurrency(cartTotal)}</span>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-black text-text">Cart</h2>
+                <p className="mt-1 text-xs text-text-muted">{cart.length} item{cart.length === 1 ? "" : "s" } selected</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-black text-primary">{formatCurrency(cartTotal)}</span>
+              </div>
             </div>
 
             {cart.length === 0 ? (
@@ -465,10 +487,20 @@ const Orders = () => {
                 })}
               </div>
             )}
-
-            <Button className="mt-4" iconName="FaReceipt" onClick={handleCreateOrder} isLoading={isSaving} fullWidth>
-              Create Order
-            </Button>
+  
+            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <Button iconName="FaReceipt" onClick={handleCreateOrder} isLoading={isSaving} fullWidth>
+                Create Order
+              </Button>
+              <Button
+                variant="ghost"
+                iconName="FaXmark"
+                onClick={() => setIsClearCartConfirmOpen(true)}
+                disabled={cart.length === 0 || isSaving}
+              >
+                Clear Cart
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -628,6 +660,56 @@ const Orders = () => {
             )}
           </div>
       </div>
+
+      <Modal
+        isOpen={isClearFormConfirmOpen}
+        onClose={() => setIsClearFormConfirmOpen(false)}
+        title="Clear Order Form"
+        size="sm"
+        primaryAction={{
+          label: "Clear All",
+          onClick: () => {
+            resetOrderForm();
+            setIsClearFormConfirmOpen(false);
+          },
+          variant: "danger",
+          iconName: "FaRotateLeft",
+        }}
+        secondaryAction={{
+          label: "Cancel",
+          onClick: () => setIsClearFormConfirmOpen(false),
+          variant: "ghost",
+        }}
+      >
+        <div className="not-italic text-sm leading-relaxed text-text-muted">
+          Clear the customer details, order options, notes, discount, and cart?
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isClearCartConfirmOpen}
+        onClose={() => setIsClearCartConfirmOpen(false)}
+        title="Clear Cart"
+        size="sm"
+        primaryAction={{
+          label: "Clear Cart",
+          onClick: () => {
+            clearCart();
+            setIsClearCartConfirmOpen(false);
+          },
+          variant: "danger",
+          iconName: "FaXmark",
+        }}
+        secondaryAction={{
+          label: "Cancel",
+          onClick: () => setIsClearCartConfirmOpen(false),
+          variant: "ghost",
+        }}
+      >
+        <div className="not-italic text-sm leading-relaxed text-text-muted">
+          Remove all selected menu items from the cart?
+        </div>
+      </Modal>
     </div>
   );
 

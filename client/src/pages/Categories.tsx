@@ -23,6 +23,7 @@ const Categories = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -153,12 +154,15 @@ const Categories = () => {
     }
   };
 
-  const handleDelete = async (category: Category) => {
-    setDeletingId(category.id);
+  const handleDelete = async () => {
+    if (!categoryToDelete) return;
+
+    setDeletingId(categoryToDelete.id);
     try {
-      await CategoryService.delete(category.id);
-      notify.success(`Category deleted: ${category.name}.`);
+      await CategoryService.delete(categoryToDelete.id);
+      notify.success(`Category deleted: ${categoryToDelete.name}.`);
       await fetchCategories();
+      setCategoryToDelete(null);
     } catch (error) {
       console.error(error);
     } finally {
@@ -283,7 +287,7 @@ const Categories = () => {
                             size="sm"
                             variant="danger"
                             iconName="FaTrash"
-                            onClick={() => handleDelete(category)}
+                            onClick={() => setCategoryToDelete(category)}
                             isLoading={deletingId === category.id}
                           >
                             Delete
@@ -339,6 +343,29 @@ const Categories = () => {
               fullWidth
             />
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!categoryToDelete}
+        onClose={() => setCategoryToDelete(null)}
+        title="Delete Category"
+        size="sm"
+        primaryAction={{
+          label: "Delete",
+          onClick: handleDelete,
+          isLoading: deletingId === categoryToDelete?.id,
+          variant: "danger",
+          iconName: "FaTrash",
+        }}
+        secondaryAction={{
+          label: "Cancel",
+          onClick: () => setCategoryToDelete(null),
+          variant: "ghost",
+        }}
+      >
+        <div className="not-italic text-sm leading-relaxed text-text-muted">
+          Delete <span className="font-bold text-text">{categoryToDelete?.name}</span>? It will move to the Recycle Bin. Categories with linked menu items may still be protected from permanent deletion.
         </div>
       </Modal>
     </div>
