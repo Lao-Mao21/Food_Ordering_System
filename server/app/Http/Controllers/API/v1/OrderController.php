@@ -130,6 +130,20 @@ class OrderController extends Controller
         ]);
     }
 
+    public function myOrders(Request $request): JsonResponse
+    {
+        $orders = Order::query()
+            ->with(['items.menuItem'])
+            ->where('created_by', $request->user()->id)
+            ->latest('ordered_at')
+            ->latest()
+            ->get();
+
+        return $this->success('My orders retrieved successfully.', [
+            'orders' => $orders,
+        ]);
+    }
+
     public function update(Request $request, Order $order): JsonResponse
     {
         $validated = $request->validate([
@@ -141,6 +155,8 @@ class OrderController extends Controller
             'payment_method' => ['sometimes', Rule::in(['cash', 'card', 'ewallet'])],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        $this->preventTerminalStatusChange($order, $validated['status'] ?? null);
 
         if (($validated['status'] ?? null) === 'completed' && ! $order->completed_at) {
             $validated['completed_at'] = now();
@@ -160,7 +176,39 @@ class OrderController extends Controller
             'payment_status' => ['sometimes', Rule::in(['pending', 'paid', 'refunded'])],
         ]);
 
+        $this->preventTerminalStatusChange($order, $validated['status']);
+
         return $this->update($request->merge($validated), $order);
+    }
+
+    public function updateMyOrder(Request $request, Order $order): JsonResponse
+    {
+        $this->ensureOwnEditableOrder($request, $order);
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $order->update([
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return $this->success('Order updated successfully.', [
+            'order' => $order->refresh()->load(['items.menuItem']),
+        ]);
+    }
+
+    public function deleteMyOrder(Request $request, Order $order): JsonResponse
+    {
+        $this->ensureOwnEditableOrder($request, $order);
+
+        $order->update([
+            'status' => 'cancelled',
+        ]);
+
+        return $this->success('Order cancelled successfully.', [
+            'order' => $order->refresh()->load(['items.menuItem']),
+        ]);
     }
 
     public function cleanNote(Request $request): JsonResponse
@@ -230,6 +278,28 @@ class OrderController extends Controller
             : 1;
 
         return $prefix . str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function ensureOwnEditableOrder(Request $request, Order $order): void
+    {
+        if ($order->created_by !== $request->user()->id) {
+            abort(403, 'You can only manage orders you submitted.');
+        }
+
+        if ($order->status !== 'pending') {
+            abort(422, 'Only pending orders can be changed from mobile.');
+        }
+    }
+
+    private function preventTerminalStatusChange(Order $order, ?string $nextStatus): void
+    {
+        if (! $nextStatus || $nextStatus === $order->status) {
+            return;
+        }
+
+        if (in_array($order->status, ['completed', 'cancelled'], true)) {
+            abort(422, 'Completed or cancelled orders can no longer be changed.');
+        }
     }
 
     private function extractCleanedNote(mixed $payload): ?string

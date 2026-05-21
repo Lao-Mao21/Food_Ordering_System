@@ -46,6 +46,15 @@ class OrderGoodApp extends StatelessWidget {
             textStyle: const TextStyle(fontWeight: FontWeight.w800),
           ),
         ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFFF6FEFF),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: Color(0xFFC2D1EA)),
+          ),
+          margin: EdgeInsets.zero,
+        ),
       ),
       home: const AuthGate(),
     );

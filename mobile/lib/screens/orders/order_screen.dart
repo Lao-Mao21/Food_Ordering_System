@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/menu_item_model.dart';
+import '../../models/order_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/menu_service.dart';
 import '../../services/order_service.dart';
@@ -29,15 +30,18 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   final _cart = <int, CartLine>{};
 
   late Future<List<MenuItemModel>> _menuFuture;
+  late Future<List<OrderModel>> _ordersFuture;
   String _orderType = 'dine_in';
   String _paymentMethod = 'cash';
   bool _isSubmitting = false;
   bool _isCleaningNote = false;
+  int _sectionIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _menuFuture = ref.read(menuServiceProvider).getAvailableItems();
+    _ordersFuture = ref.read(orderServiceProvider).getMyOrders();
   }
 
   @override
@@ -124,6 +128,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
       _phoneController.clear();
       _notesController.clear();
       setState(() => _cart.clear());
+      _refreshMyOrders();
       _showMessage('Order submitted. It will appear in the web system.');
     } on DioException catch (error) {
       _showMessage(error.response?.data['message'] as String? ?? 'Unable to submit order.');
@@ -134,6 +139,84 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
 
   Future<void> _logout() async {
     await ref.read(authProvider.notifier).logout();
+  }
+
+  void _refreshMyOrders() {
+    setState(() {
+      _ordersFuture = ref.read(orderServiceProvider).getMyOrders();
+    });
+  }
+
+  Future<void> _updateOrderNote(OrderModel order) async {
+    final controller = TextEditingController(text: order.notes ?? '');
+
+    final note = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Update ${order.orderNumber}'),
+          content: TextField(
+            controller: controller,
+            minLines: 3,
+            maxLines: 5,
+            decoration: const InputDecoration(labelText: 'Notes'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    if (note == null) return;
+
+    try {
+      await ref.read(orderServiceProvider).updateMyOrderNote(order.id, note);
+      _refreshMyOrders();
+      _showMessage('Order note updated.');
+    } on DioException catch (error) {
+      _showMessage(error.response?.data['message'] as String? ?? 'Unable to update order.');
+    }
+  }
+
+  Future<void> _cancelOrder(OrderModel order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Cancel ${order.orderNumber}?'),
+          content: const Text('Only pending orders can be cancelled from mobile.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Keep'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Cancel order'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(orderServiceProvider).cancelMyOrder(order.id);
+      _refreshMyOrders();
+      _showMessage('Order cancelled.');
+    } on DioException catch (error) {
+      _showMessage(error.response?.data['message'] as String? ?? 'Unable to cancel order.');
+    }
   }
 
   void _showMessage(String message) {
@@ -149,7 +232,21 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('OrderGood'),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/logo/OrderGood.jpg',
+                width: 34,
+                height: 34,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text('OrderGood'),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Refresh menu',
@@ -172,31 +269,81 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
           onRefresh: () async {
             setState(() {
               _menuFuture = ref.read(menuServiceProvider).getAvailableItems();
+              _ordersFuture = ref.read(orderServiceProvider).getMyOrders();
             });
-            await _menuFuture;
+            await Future.wait([_menuFuture, _ordersFuture]);
           },
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'Place Order',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+              _buildHeader(user?.name ?? 'OrderGood user'),
+              const SizedBox(height: 16),
+              SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(
+                    value: 0,
+                    icon: Icon(Icons.receipt_long),
+                    label: Text('Place Order'),
+                  ),
+                  ButtonSegment(
+                    value: 1,
+                    icon: Icon(Icons.history),
+                    label: Text('My Orders'),
+                  ),
+                ],
+                selected: {_sectionIndex},
+                onSelectionChanged: (selection) {
+                  setState(() => _sectionIndex = selection.first);
+                },
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Signed in as ${user?.name ?? 'OrderGood user'}',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
               const SizedBox(height: 16),
-              _buildOrderForm(),
-              const SizedBox(height: 16),
-              _buildCart(),
-              const SizedBox(height: 16),
-              _buildMenu(),
+              if (_sectionIndex == 0) ...[
+                _buildOrderForm(),
+                const SizedBox(height: 16),
+                _buildCart(),
+                const SizedBox(height: 16),
+                _buildMenu(),
+              ] else
+                _buildMyOrders(),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(String name) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                'assets/logo/OrderGood.jpg',
+                width: 62,
+                height: 62,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'OrderGood Mobile',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('Signed in as $name'),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -208,7 +355,13 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const Text(
+              'Customer Details',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _customerController,
               decoration: const InputDecoration(
@@ -386,6 +539,144 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildMyOrders() {
+    return FutureBuilder<List<OrderModel>>(
+      future: _ordersFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Loading my orders...'),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Unable to load my orders: ${snapshot.error}'),
+            ),
+          );
+        }
+
+        final orders = snapshot.data ?? [];
+
+        return Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'My Orders',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                    ),
+                    IconButton(
+                      tooltip: 'Refresh orders',
+                      onPressed: _refreshMyOrders,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
+                if (orders.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text('No submitted orders yet.'),
+                  )
+                else
+                  ...orders.map(_buildOrderTile),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOrderTile(OrderModel order) {
+    final statusColor = order.status == 'cancelled'
+        ? Colors.red.shade700
+        : order.status == 'pending'
+            ? Colors.orange.shade800
+            : Theme.of(context).colorScheme.primary;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFC2D1EA)),
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.45),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  order.orderNumber,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+              Chip(
+                label: Text(order.status),
+                labelStyle: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w800,
+                ),
+                backgroundColor: statusColor.withValues(alpha: 0.1),
+                side: BorderSide(color: statusColor.withValues(alpha: 0.2)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(order.orderType.replaceAll('_', ' ')),
+          const SizedBox(height: 4),
+          Text(
+            'PHP ${order.total.toStringAsFixed(2)}',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if (order.notes != null && order.notes!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(order.notes!),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: order.canEdit ? () => _updateOrderNote(order) : null,
+                  icon: const Icon(Icons.edit_note),
+                  label: const Text('Update note'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: order.canEdit ? () => _cancelOrder(order) : null,
+                  icon: const Icon(Icons.cancel_outlined),
+                  label: const Text('Cancel'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

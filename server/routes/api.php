@@ -22,6 +22,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('menu-items', [MenuItemController::class, 'index']);
     Route::get('menu-items/{menuItem}', [MenuItemController::class, 'show']);
     Route::post('orders', [OrderController::class, 'store']);
+    Route::get('orders/my', [OrderController::class, 'myOrders']);
+    Route::put('orders/{order}/my', [OrderController::class, 'updateMyOrder']);
+    Route::delete('orders/{order}/my', [OrderController::class, 'deleteMyOrder']);
     Route::post('orders/notes/clean', [OrderController::class, 'cleanNote']);
 
     Route::middleware('role:admin')->group(function () {

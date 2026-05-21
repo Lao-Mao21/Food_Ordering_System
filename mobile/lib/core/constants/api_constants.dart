@@ -13,6 +13,8 @@ class ApiConstants {
 
   static const String menuItems = '/menu-items';
   static const String orders = '/orders';
+  static const String myOrders = '/orders/my';
+  static String myOrder(int id) => '/orders/$id/my';
   static const String cleanOrderNote = '/orders/notes/clean';
 
   static const Duration connectTimeout = Duration(seconds: 30);
